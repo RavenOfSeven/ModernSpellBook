@@ -154,11 +154,15 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     -- Keep old border reference for passive/active logic
     spellFrame.border = spellFrame.fancyFrameTex
 
-    -- Layer 5: Hover highlight
-    spellFrame.checkedGlow = spellFrame:CreateTexture(nil, "OVERLAY")
-    spellFrame.checkedGlow:SetWidth(SPELL_ICON_SIZE)
-    spellFrame.checkedGlow:SetHeight(SPELL_ICON_SIZE)
-    spellFrame.checkedGlow:SetPoint("CENTER", spellFrame.icon, "CENTER", 0, 0)
+    -- Layer 5: Hover highlight (child frame to render above icon)
+    spellFrame.checkedGlowFrame = CreateFrame("Frame", nil, spellFrame)
+    spellFrame.checkedGlowFrame:SetWidth(SPELL_ICON_SIZE)
+    spellFrame.checkedGlowFrame:SetHeight(SPELL_ICON_SIZE)
+    spellFrame.checkedGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0, 0)
+    spellFrame.checkedGlowFrame:SetFrameLevel(spellFrame:GetFrameLevel() + 4)
+
+    spellFrame.checkedGlow = spellFrame.checkedGlowFrame:CreateTexture(nil, "OVERLAY")
+    spellFrame.checkedGlow:SetAllPoints(spellFrame.checkedGlowFrame)
     spellFrame.checkedGlow:SetTexture("Interface\\Buttons\\CheckButtonHilight")
     spellFrame.checkedGlow:SetBlendMode("ADD")
     spellFrame.checkedGlow:SetAlpha(0)
