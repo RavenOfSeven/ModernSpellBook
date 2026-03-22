@@ -189,6 +189,14 @@ end
 function ModernSpellBookFrame:SetupFrame()
     local classID = MSB_GetClassIndex()
     ModernSpellBookFrame:EnableMouse(true)
+    ModernSpellBookFrame:SetMovable(true)
+    ModernSpellBookFrame:RegisterForDrag("LeftButton")
+    ModernSpellBookFrame:SetScript("OnDragStart", function ()
+        this:StartMoving()
+    end)
+    ModernSpellBookFrame:SetScript("OnDragStop", function() 
+        this:StopMovingOrSizing()
+    end)
     ModernSpellBookFrame:SetWidth(windowSettings.width2)
     ModernSpellBookFrame:SetHeight(windowSettings.height)
     ModernSpellBookFrame:SetPoint("CENTER", UIParent, "CENTER", 0, windowSettings.posy)
@@ -1386,19 +1394,4 @@ else
         ModernSpellBookFrame:Show()
         SpellBookFrame:EnableMouse(false)
     end)
-end
-
--- Allow crafting frames to work while on wide mode.
-ModernSpellBookFrame:RegisterEvent("TRADE_SKILL_SHOW")
-ModernSpellBookFrame.TRADE_SKILL_SHOW = function(self, event, ...)
-    if ModernSpellBook_DB.isMinimized then return end
-    HideUIPanel(SpellBookFrame)
-    if TradeSkillFrame then ShowUIPanel(TradeSkillFrame) end
-end
-
-ModernSpellBookFrame:RegisterEvent("CRAFT_SHOW")
-ModernSpellBookFrame.CRAFT_SHOW = function(self, event, ...)
-    if ModernSpellBook_DB.isMinimized then return end
-    HideUIPanel(SpellBookFrame)
-    if CraftFrame then ShowUIPanel(CraftFrame) end
 end

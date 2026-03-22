@@ -415,7 +415,7 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
             spellFrame.tile:SetAlpha(1)
             spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 22)
             spellFrame.tile:SetHeight(SPELL_ICON_SIZE + 22)
-            spellFrame.tile:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
+            spellFrame.tile:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", -3, 3)
             spellFrame.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
             spellFrame.tile:SetVertexColor(1, 1, 1, 1)
 
