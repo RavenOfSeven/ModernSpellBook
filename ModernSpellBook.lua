@@ -727,7 +727,7 @@ end
 function ModernSpellBookFrame:CalculateSpellPositions(AllSpells, isPetTab)
     local pageCollection = {}
     local spellPage = {}
-    local currentPageRows = -1.25
+    local currentPageRows = -2
     local totalSpells = 0; local totalCategories = 0
     local maxPagesPerView = ModernSpellBook_DB.isMinimized and 1 or 2
     local drawingPageNumber = 1
@@ -742,15 +742,15 @@ function ModernSpellBookFrame:CalculateSpellPositions(AllSpells, isPetTab)
     for _, category in ipairs(allSpellCategories) do
         if AllSpells[category] ~= nil and table.getn(AllSpells[category]) > 0 then
             spells = AllSpells[category]
-            if currentPageRows +(table.getn(spells) < 3 and 2 or 3) > 7.5 then
-                currentPageRows = -1.25
+            if currentPageRows +(table.getn(spells) < 3 and 3 or 4) > 7.5 then
+                currentPageRows = -2
                 drawingPageNumber = math.mod(drawingPageNumber, maxPagesPerView) +1
                 if drawingPageNumber == 1 then
                     table.insert(pageCollection, spellPage)
                     spellPage = {}
                 end
             end
-            currentPageRows = currentPageRows +1.5
+            currentPageRows = currentPageRows +2
             totalCategories = totalCategories +1
 
             table.insert(spellPage, {isCategory = true, category = category, currentPageRows = currentPageRows, drawingPageNumber = drawingPageNumber})
