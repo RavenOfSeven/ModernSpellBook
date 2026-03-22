@@ -48,10 +48,10 @@ function ModernSpellBookFrame:GetOrCreateCategory(i)
     categoryFrame.lightBorder:SetDrawLayer("OVERLAY", -2)
     categoryFrame.lightBorder:SetAlpha(0.15)
 
-    categoryFrame.separator = categoryFrame:CreateTexture(nil, "BACKGROUND")
+    categoryFrame.separator = categoryFrame:CreateTexture(nil, "OVERLAY")
     categoryFrame.separator:SetWidth(400)
     categoryFrame.separator:SetHeight(10)
-    categoryFrame.separator:SetPoint("TOPLEFT", categoryFrame, "TOPLEFT", 0, -25)
+    categoryFrame.separator:SetPoint("TOPLEFT", categoryFrame, "TOPLEFT", 0, -30)
     categoryFrame.separator:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\separator")
 
     function categoryFrame:Set(categoryName, currentPageRows, page)
@@ -84,15 +84,6 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame:SetMovable(true)
     spellFrame:RegisterForDrag("LeftButton")
 
-    spellFrame.checkedGlow = spellFrame:CreateTexture(nil, "OVERLAY")
-    spellFrame.checkedGlow:SetWidth(SPELL_ICON_SIZE)
-    spellFrame.checkedGlow:SetHeight(SPELL_ICON_SIZE)
-    spellFrame.checkedGlow:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", 0, 0)
-    spellFrame.checkedGlow:SetTexture("Interface\\Buttons\\CheckButtonHilight")
-    spellFrame.checkedGlow:SetBlendMode("ADD")
-    spellFrame.checkedGlow:SetAlpha(0)
-    spellFrame.checkedGlow.checkedAlpha = 0.5
-
     -- Text container - vertically centered on the icon
     spellFrame.textGroup = CreateFrame("Frame", nil, spellFrame)
     spellFrame.textGroup:SetWidth(100)
@@ -109,14 +100,57 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame.text:SetFont("Fonts\\FRIZQT__.TTF", 11.5)
     if spellFrame.text.SetJustifyV then spellFrame.text:SetJustifyV("TOP") end
 
-    -- The spell icon
+    -- Light border behind text area
+    spellFrame.lightBorder = spellFrame:CreateTexture(nil, "ARTWORK")
+    spellFrame.lightBorder:SetWidth(170)
+    spellFrame.lightBorder:SetHeight(TOTAL_SPELL_SIZE)
+    spellFrame.lightBorder:SetPoint("LEFT", spellFrame, "CENTER", 0, -7)
+    spellFrame.lightBorder:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
+    spellFrame.lightBorder:SetBlendMode("ADD")
+    spellFrame.lightBorder:SetAlpha(0.15)
+
+    -- === SpellIcon container: newGlow -> tile/socket -> icon -> border -> cooldown ===
+    -- Layer 1 (bottom): New spell glow
+    spellFrame.newGlow = spellFrame:CreateTexture(nil, "BACKGROUND")
+    spellFrame.newGlow:SetWidth(70)
+    spellFrame.newGlow:SetHeight(62)
+    spellFrame.newGlow:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
+    spellFrame.newGlow:SetTexture("Interface\\Buttons\\CheckButtonGlow")
+    spellFrame.newGlow:SetBlendMode("ADD")
+    spellFrame.newGlow:SetAlpha(0.8)
+
+    -- Layer 2: Tile/socket background
+    spellFrame.tile = spellFrame:CreateTexture(nil, "ARTWORK")
+    spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 22)
+    spellFrame.tile:SetHeight(SPELL_ICON_SIZE + 22)
+    spellFrame.tile:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
+    spellFrame.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
+
+    -- Layer 3: The spell icon
     spellFrame.icon = spellFrame:CreateTexture(nil, "OVERLAY")
     spellFrame.icon:SetWidth(SPELL_ICON_SIZE)
     spellFrame.icon:SetHeight(SPELL_ICON_SIZE)
-    spellFrame.icon:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", 0, 0)
+    spellFrame.icon:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
     spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
 
-    -- Cooldown display - in vanilla, use "Model" frame type instead of "Cooldown"
+    -- Layer 4: Border frame around icon
+    spellFrame.border = spellFrame:CreateTexture(nil, "OVERLAY")
+    spellFrame.border:SetWidth(SPELL_ICON_SIZE + 20)
+    spellFrame.border:SetHeight(SPELL_ICON_SIZE + 20)
+    spellFrame.border:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
+    spellFrame.border:SetTexture("Interface\\Spellbook\\RotationIconFrame")
+
+    -- Layer 5: Hover highlight
+    spellFrame.checkedGlow = spellFrame:CreateTexture(nil, "OVERLAY")
+    spellFrame.checkedGlow:SetWidth(SPELL_ICON_SIZE)
+    spellFrame.checkedGlow:SetHeight(SPELL_ICON_SIZE)
+    spellFrame.checkedGlow:SetPoint("CENTER", spellFrame.icon, "CENTER", 0, 0)
+    spellFrame.checkedGlow:SetTexture("Interface\\Buttons\\CheckButtonHilight")
+    spellFrame.checkedGlow:SetBlendMode("ADD")
+    spellFrame.checkedGlow:SetAlpha(0)
+    spellFrame.checkedGlow.checkedAlpha = 0.5
+
+    -- Layer 6: Cooldown (separate frame, on top)
     local cdType = COOLDOWN_FRAME_TYPE or "Model"
     local cdOk, cdFrame = pcall(CreateFrame, cdType, nil, spellFrame, "CooldownFrameTemplate")
     if not cdOk then
@@ -124,46 +158,14 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     end
     if cdOk and cdFrame then
         spellFrame.cooldown = cdFrame
-        spellFrame.cooldown:SetPoint("TOPLEFT", spellFrame.icon, "TOPLEFT", -1, 1)
-        spellFrame.cooldown:SetPoint("BOTTOMRIGHT", spellFrame.icon, "BOTTOMRIGHT", 1, -1)
+        spellFrame.cooldown:SetPoint("TOPLEFT", spellFrame.icon, "TOPLEFT", 0, 0)
+        spellFrame.cooldown:SetPoint("BOTTOMRIGHT", spellFrame.icon, "BOTTOMRIGHT", 0, 0)
         if spellFrame.cooldown.SetDrawEdge then
             spellFrame.cooldown:SetDrawEdge(false)
         end
     else
         spellFrame.cooldown = nil
     end
-
-    spellFrame.tile = spellFrame:CreateTexture(nil, "BACKGROUND")
-    spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 16)
-    spellFrame.tile:SetHeight(SPELL_ICON_SIZE + 16)
-    spellFrame.tile:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", -3, 3)
-    spellFrame.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
-
-    spellFrame.border = spellFrame:CreateTexture(nil, "BACKGROUND")
-    spellFrame.border:SetWidth(SPELL_ICON_SIZE + 14)
-    spellFrame.border:SetHeight(SPELL_ICON_SIZE + 14)
-    spellFrame.border:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
-    spellFrame.border:SetTexture("Interface\\Spellbook\\RotationIconFrame")
-    spellFrame.border:SetDrawLayer("OVERLAY", 1)
-
-    -- Add a light border around the spell icon
-    spellFrame.lightBorder = spellFrame:CreateTexture(nil, "OVERLAY")
-    spellFrame.lightBorder:SetWidth(170)
-    spellFrame.lightBorder:SetHeight(TOTAL_SPELL_SIZE)
-    spellFrame.lightBorder:SetPoint("LEFT", spellFrame, "CENTER", 0, -7)
-    spellFrame.lightBorder:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
-    spellFrame.lightBorder:SetBlendMode("ADD")
-    spellFrame.lightBorder:SetDrawLayer("BACKGROUND", -1)
-    spellFrame.lightBorder:SetAlpha(0.15)
-
-    -- A glow for new spells
-    spellFrame.newGlow = spellFrame:CreateTexture(nil, "BACKGROUND")
-    spellFrame.newGlow:SetWidth(70)
-    spellFrame.newGlow:SetHeight(62)
-    spellFrame.newGlow:SetPoint("LEFT", spellFrame, "LEFT", -6, -10)
-    spellFrame.newGlow:SetTexture("Interface\\Glues\\Common\\Glue-Panel-Button-Glow")
-    spellFrame.newGlow:SetBlendMode("ADD")
-    spellFrame.newGlow:SetAlpha(0.8)
 
     -- Rank/passive text inside the text group
     spellFrame.subText = spellFrame.textGroup:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -367,21 +369,20 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
         spellFrame:Show()
         if spellInfo.isPassive then
             spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
-            spellFrame.icon:SetVertexColor(0.75, 0.75, 0.75)
+            spellFrame.icon:SetVertexColor(1, 1, 1)
 
             spellFrame.tile:SetAlpha(1)
             spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 22)
             spellFrame.tile:SetHeight(SPELL_ICON_SIZE + 22)
-            spellFrame.tile:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", -3, 3)
+            spellFrame.tile:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
             spellFrame.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
-            spellFrame.tile:SetVertexColor(0.6, 0.6, 0.6, 1)
+            spellFrame.tile:SetVertexColor(1, 1, 1, 1)
 
             spellFrame.border:SetWidth(SPELL_ICON_SIZE + 20)
             spellFrame.border:SetHeight(SPELL_ICON_SIZE + 20)
             spellFrame.border:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
             spellFrame.border:SetTexture("Interface\\Spellbook\\RotationIconFrame")
-            spellFrame.border:SetDrawLayer("OVERLAY", 1)
-            spellFrame.border:SetVertexColor(0.6, 0.6, 0.6)
+            spellFrame.border:SetVertexColor(1, 1, 1)
 
             spellFrame.checkedGlow.checkedAlpha = 0
         else
