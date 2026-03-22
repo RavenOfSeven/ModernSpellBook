@@ -207,7 +207,28 @@ function ModernSpellBookFrame:SetupFrame()
     ModernSpellBookFrame.title:SetPoint("TOP", ModernSpellBookFrame, "TOP", 0, -24)
     ModernSpellBookFrame.title:SetText(SPELLBOOK)
 
-    -- Portrait mask removed (no PortraitFrameTemplate in vanilla)
+    -- Portrait frame: black fill + book icon + border
+    ModernSpellBookFrame.portraitBg = ModernSpellBookFrame:CreateTexture(nil, "ARTWORK")
+    ModernSpellBookFrame.portraitBg:SetWidth(44)
+    ModernSpellBookFrame.portraitBg:SetHeight(44)
+    ModernSpellBookFrame.portraitBg:SetPoint("TOPLEFT", ModernSpellBookFrame, "TOPLEFT", -10, 10)
+    ModernSpellBookFrame.portraitBg:SetTexture(0, 0, 0, 1)
+
+    ModernSpellBookFrame.book = ModernSpellBookFrame:CreateTexture(nil, "OVERLAY")
+    ModernSpellBookFrame.book:SetWidth(40)
+    ModernSpellBookFrame.book:SetHeight(40)
+    ModernSpellBookFrame.book:SetPoint("CENTER", ModernSpellBookFrame.portraitBg, "CENTER", 0, 0)
+    ModernSpellBookFrame.book:SetTexture("Interface\\Spellbook\\Spellbook-Icon")
+    ModernSpellBookFrame.book:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+    ModernSpellBookFrame.portraitBorderFrame = CreateFrame("Frame", nil, ModernSpellBookFrame)
+    ModernSpellBookFrame.portraitBorderFrame:SetWidth(76)
+    ModernSpellBookFrame.portraitBorderFrame:SetHeight(76)
+    ModernSpellBookFrame.portraitBorderFrame:SetPoint("CENTER", ModernSpellBookFrame.portraitBg, "CENTER", 0, 0)
+    ModernSpellBookFrame.portraitBorderFrame:SetFrameLevel(ModernSpellBookFrame:GetFrameLevel() + 5)
+    ModernSpellBookFrame.portraitBorder = ModernSpellBookFrame.portraitBorderFrame:CreateTexture(nil, "OVERLAY")
+    ModernSpellBookFrame.portraitBorder:SetAllPoints(ModernSpellBookFrame.portraitBorderFrame)
+    ModernSpellBookFrame.portraitBorder:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
 
     ModernSpellBookFrame.backgroundLeft = ModernSpellBookFrame:CreateTexture(nil, "ARTWORK")
     ModernSpellBookFrame.backgroundLeft:SetWidth(windowSettings.width1 -30)
@@ -254,8 +275,6 @@ function ModernSpellBookFrame:SetupFrame()
     ModernSpellBookFrame.bookmarkRunes:SetTexCoord(1, 0, 0, 1)
     ModernSpellBookFrame.bookmarkRunes:SetVertexColor(1, 1, 1)
     ModernSpellBookFrame.bookmarkRunes:SetDrawLayer("OVERLAY", 1)
-
-    -- Book icon removed (no portrait mask support in vanilla)
 
     ModernSpellBookFrame.noresultsText = ModernSpellBookFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     ModernSpellBookFrame.noresultsText:SetPoint("CENTER", ModernSpellBookFrame.backgroundLeft, "CENTER", 0, 0)
