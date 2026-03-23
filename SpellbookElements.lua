@@ -682,6 +682,10 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
             if isDark then
                 spellFrame.text:SetTextColor(0.4, 0.4, 0.4)
                 spellFrame.subText:SetTextColor(0.4, 0.4, 0.4)
+                spellFrame.text:SetShadowOffset(1, -1)
+                spellFrame.text:SetShadowColor(0, 0, 0, 0.7)
+                spellFrame.subText:SetShadowOffset(1, -1)
+                spellFrame.subText:SetShadowColor(0, 0, 0, 0.7)
             else
                 -- Desaturate the gold/white by averaging towards grey
                 spellFrame.text:SetTextColor(0.6, 0.55, 0.35)
