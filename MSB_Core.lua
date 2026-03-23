@@ -282,15 +282,6 @@ function ModernSpellBookFrame:SetupFrame()
     ModernSpellBookFrame.bookmark:SetVertexColor(classColors[classID][1], classColors[classID][2], classColors[classID][3])
     classColors = nil
 
-    ModernSpellBookFrame.bookmarkRunes = ModernSpellBookFrame:CreateTexture(nil, "OVERLAY")
-    ModernSpellBookFrame.bookmarkRunes:SetWidth(65)
-    ModernSpellBookFrame.bookmarkRunes:SetHeight(340)
-    ModernSpellBookFrame.bookmarkRunes:SetPoint("TOPLEFT", ModernSpellBookFrame, "TOPLEFT", windowSettings.width1-75, -60)
-    ModernSpellBookFrame.bookmarkRunes:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\bookmark_runes")
-    ModernSpellBookFrame.bookmarkRunes:SetTexCoord(1, 0, 0, 1)
-    ModernSpellBookFrame.bookmarkRunes:SetVertexColor(1, 1, 1)
-    ModernSpellBookFrame.bookmarkRunes:SetDrawLayer("OVERLAY", 1)
-
     ModernSpellBookFrame.noresultsText = ModernSpellBookFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     ModernSpellBookFrame.noresultsText:SetPoint("CENTER", ModernSpellBookFrame.backgroundLeft, "CENTER", 0, 0)
     ModernSpellBookFrame.noresultsText:SetText(ModernSpellBookFrame.ClientLocale.NoResults.. NEW.. ", ".. TALENT.. "'")

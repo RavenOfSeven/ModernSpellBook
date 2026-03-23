@@ -162,23 +162,6 @@ if not CooldownFrame_Set then
     end
 end
 
--- RUNES constant (SoD feature, define as empty string to prevent nil errors)
-if not RUNES then
-    RUNES = "Runes"
-end
-
--- C_Engraving stub (SoD feature, stub out to prevent errors)
-if not C_Engraving then
-    C_Engraving = {
-        RefreshRunesList = function() end,
-        ClearExclusiveCategoryFilter = function() end,
-        EnableEquippedFilter = function() end,
-        GetRuneCategories = function() return {} end,
-        GetRunesForCategory = function() return {} end,
-        IsRuneEquipped = function() return false end,
-    }
-end
-
 -- GameTooltip:SetSpellByID polyfill
 -- In vanilla, we use GameTooltip:SetSpell(slot, bookType) instead
 if not GameTooltip.SetSpellByID then

@@ -9,12 +9,12 @@
 
 ## SavedVariablesPerCharacter: ModernSpellBook_DB
 
-Compat.lua
-ModernSpellBook.lua
-ActionBar.lua
-SpellbookElements.lua
-Stances.lua
-TrainerData.lua
-Talents.lua
-Localization.lua
-Tabs.lua
+MSB_Compat.lua
+MSB_Core.lua
+MSB_ActionBar.lua
+MSB_SpellFrame.lua
+MSB_Stances.lua
+MSB_TrainerData.lua
+MSB_Talents.lua
+MSB_Localization.lua
+MSB_Tabs.lua
