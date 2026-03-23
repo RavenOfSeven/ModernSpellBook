@@ -767,6 +767,7 @@ class "CSpellBook"
 	-- ================ HIDE OLD SPELLBOOK =========================
 
 	HideOldSpellBook = function(self)
+        
 		for i, region in ipairs( { SpellBookFrame:GetRegions() } ) do
 			region:Hide()
 		end
@@ -775,24 +776,6 @@ class "CSpellBook"
 			if (childName ~= "ModernSpellBookFrame" and childName ~= "SpellBookCloseButton") then
 				child:Hide()
 			end
-		end
-		local vanillaElements = {
-			"SpellBookTitleText", "SpellBookNameText", "SpellBookPageText",
-			"SpellBookPrevPageButton", "SpellBookNextPageButton",
-			"SpellBookPageNavigationFrame", "SpellBookSkillLineTab1",
-			"SpellBookSkillLineTab2", "SpellBookSkillLineTab3", "SpellBookSkillLineTab4",
-			"SpellBookSkillLineTab5", "SpellBookSkillLineTab6", "SpellBookSkillLineTab7",
-			"SpellBookSkillLineTab8",
-			"SpellBookTabFlashFrame", "SpellBookSpellIconsFrame",
-			"SpellBookCompanionsFrame", "SpellBookCompanionModelFrame",
-		}
-		for _, name in ipairs(vanillaElements) do
-			local frame = _G[name]
-			if (frame and frame.Hide) then frame:Hide() end
-		end
-		for i = 1, 20 do
-			local btn = _G["SpellButton" .. i]
-			if (btn) then btn:Hide() end
 		end
 	end;
 
