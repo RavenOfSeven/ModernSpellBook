@@ -179,6 +179,26 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame.newGlow:SetBlendMode("ADD")
     spellFrame.newGlow:SetAlpha(1)
 
+    -- "New" badge for newly learned spells
+    spellFrame.newSpellBadge = CreateFrame("Frame", nil, spellFrame.newGlowFrame)
+    spellFrame.newSpellBadge:SetWidth(28)
+    spellFrame.newSpellBadge:SetHeight(14)
+    spellFrame.newSpellBadge:SetPoint("BOTTOM", spellFrame, "TOP", 0, 2)
+    spellFrame.newSpellBadge:SetFrameLevel(spellFrame:GetFrameLevel() + 16)
+    spellFrame.newSpellBadge:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 8, edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 }
+    })
+    spellFrame.newSpellBadge:SetBackdropColor(1, 0.878, 0.078, 0.9)
+    spellFrame.newSpellBadge:SetBackdropBorderColor(0.8, 0.7, 0.06, 0.9)
+    local newBadgeText = spellFrame.newSpellBadge:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    newBadgeText:SetPoint("CENTER", spellFrame.newSpellBadge, "CENTER", 0, 0)
+    newBadgeText:SetText("New")
+    newBadgeText:SetFont("Fonts\\FRIZQT__.TTF", 8)
+    newBadgeText:SetTextColor(1, 1, 1)
+
     -- Layer 2: Tile/socket background
     spellFrame.tile = spellFrame:CreateTexture(nil, "ARTWORK")
     spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 22)
@@ -295,9 +315,9 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
 
     -- "New" badge for available-to-learn spells
     spellFrame.newBadge = CreateFrame("Frame", nil, spellFrame.availableGlowFrame)
-    spellFrame.newBadge:SetWidth(28)
+    spellFrame.newBadge:SetWidth(32)
     spellFrame.newBadge:SetHeight(14)
-    spellFrame.newBadge:SetPoint("BOTTOM", spellFrame.icon, "TOP", 0, 0)
+    spellFrame.newBadge:SetPoint("BOTTOM", spellFrame.icon, "TOP", 0, 2)
     spellFrame.newBadge:SetFrameLevel(spellFrame:GetFrameLevel() + 9)
     spellFrame.newBadge:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -309,7 +329,7 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame.newBadge:SetBackdropBorderColor(0, 0.6, 0, 0.5)
     spellFrame.newBadgeText = spellFrame.newBadge:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     spellFrame.newBadgeText:SetPoint("CENTER", spellFrame.newBadge, "CENTER", 0, 0)
-    spellFrame.newBadgeText:SetText("New")
+    spellFrame.newBadgeText:SetText("Train")
     spellFrame.newBadgeText:SetFont("Fonts\\FRIZQT__.TTF", 8)
     spellFrame.newBadgeText:SetTextColor(1, 1, 1)
 
