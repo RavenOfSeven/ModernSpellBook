@@ -59,4 +59,4 @@ class "CTextStyle"
 	end;
 }
 
-MSB_TextStyleInstance = CTextStyle()
+TextStyle = CTextStyle()

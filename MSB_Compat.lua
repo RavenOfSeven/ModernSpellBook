@@ -65,13 +65,6 @@ if not SOUNDKIT then
     }
 end
 
--- InCombatLockdown polyfill
-if not InCombatLockdown then
-    InCombatLockdown = function()
-        return UnitAffectingCombat("player")
-    end
-end
-
 -- GetSpellBookItemName polyfill (vanilla uses GetSpellName)
 if not GetSpellBookItemName then
     GetSpellBookItemName = function(index, bookType)

@@ -63,7 +63,7 @@ class "CSpellItem"
 		self.rankText:SetHeight(10)
 
 		-- Apply initial text style
-		MSB_TextStyleInstance:ApplyToSpell(self.nameText, self.rankText, self.trailBg, "normal")
+		TextStyle:ApplyToSpell(self.nameText, self.rankText, self.trailBg, "normal")
 
 		self.spellID = nil
 		self.bookType = nil
@@ -282,12 +282,12 @@ class "CSpellItem"
 		self.spellIcon:SetLearnedState(spellInfo)
 		-- Handle text-level styling and frame interactivity
 		if (spellInfo.isUnlearned) then
-			MSB_TextStyleInstance:ApplyToSpell(self.nameText, self.rankText, self.trailBg, "unlearned")
+			TextStyle:ApplyToSpell(self.nameText, self.rankText, self.trailBg, "unlearned")
 			self.frame:SetMovable(false)
 			self.frame:SetScript("OnDragStart", nil)
 			self.frame:SetScript("OnUpdate", nil)
 		else
-			MSB_TextStyleInstance:ApplyToSpell(self.nameText, self.rankText, self.trailBg, "normal")
+			TextStyle:ApplyToSpell(self.nameText, self.rankText, self.trailBg, "normal")
 		end
 	end;
 

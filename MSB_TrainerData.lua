@@ -149,7 +149,7 @@ class "CTrainerDataService"
 		DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00ModernSpellBook:|r Captured " .. count .. " spells from trainer.")
 
 		if (ModernSpellBookFrame:IsVisible()) then
-			ModernSpellBookFrame:DrawPage()
+			SpellBook:DrawPage()
 		end
 	end;
 
