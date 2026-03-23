@@ -203,6 +203,17 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     -- Keep old border reference for passive/active logic
     spellFrame.border = spellFrame.fancyFrameTex
 
+    -- Round border for passive spells (hidden by default)
+    spellFrame.roundBorderFrame = CreateFrame("Frame", nil, spellFrame)
+    spellFrame.roundBorderFrame:SetWidth(56)
+    spellFrame.roundBorderFrame:SetHeight(56)
+    spellFrame.roundBorderFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 5, -5)
+    spellFrame.roundBorderFrame:SetFrameLevel(spellFrame:GetFrameLevel() + 3)
+    spellFrame.roundBorder = spellFrame.roundBorderFrame:CreateTexture(nil, "OVERLAY")
+    spellFrame.roundBorder:SetAllPoints(spellFrame.roundBorderFrame)
+    spellFrame.roundBorder:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\bluemenu-ring")
+    spellFrame.roundBorderFrame:Hide()
+
     -- Layer 5: Hover highlight (child frame to render above icon)
     spellFrame.checkedGlowFrame = CreateFrame("Frame", nil, spellFrame)
     spellFrame.checkedGlowFrame:SetWidth(SPELL_ICON_SIZE)
@@ -504,31 +515,35 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
         end
 
         if spellInfo.isPassive then
-            spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
+            -- Round icon for passives
+            if SetPortraitToTexture then
+                SetPortraitToTexture(spellFrame.icon, spellInfo.spellIcon)
+            else
+                spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
+            end
             spellFrame.icon:SetVertexColor(1, 1, 1)
 
-            spellFrame.tile:SetAlpha(1)
-            spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 22)
-            spellFrame.tile:SetHeight(SPELL_ICON_SIZE + 22)
-            spellFrame.tile:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", -3, 3)
-            spellFrame.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
-            spellFrame.tile:SetVertexColor(1, 1, 1, 1)
-
-            spellFrame.border:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
-            spellFrame.border:SetVertexColor(1, 1, 1)
+            -- Hide square elements, show round border
+            spellFrame.tile:SetTexture("")
+            spellFrame.tile:SetAlpha(0)
+            spellFrame.fancyFrame:Hide()
+            spellFrame.roundBorderFrame:Show()
 
             spellFrame.checkedGlow.checkedAlpha = 0
         else
+            -- Square icon for actives
+            spellFrame.icon:SetTexture(spellInfo.spellIcon)
             spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
             spellFrame.icon:SetVertexColor(1, 1, 1)
 
-            -- Show square tile/border
+            -- Show square elements, hide round border
             spellFrame.tile:SetAlpha(1)
             spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 22)
             spellFrame.tile:SetHeight(SPELL_ICON_SIZE + 22)
             spellFrame.tile:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", -3, 3)
             spellFrame.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
             spellFrame.tile:SetVertexColor(1, 1, 1, 1)
+            spellFrame.roundBorderFrame:Hide()
 
             spellFrame.border:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
             spellFrame.border:SetDrawLayer("OVERLAY", 1)

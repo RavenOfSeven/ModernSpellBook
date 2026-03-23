@@ -527,16 +527,6 @@ function ModernSpellBookFrame:AddSettingsButton()
                 UIDropDownMenu_AddButton(info, level)
 
                 info = {}
-                info.text = "Passives"
-                info.checked = ModernSpellBook_DB.iconFrame.passives
-                info.keepShownOnClick = 1
-                info.func = function()
-                    ModernSpellBook_DB.iconFrame.passives = not ModernSpellBook_DB.iconFrame.passives
-                    ModernSpellBookFrame:DrawPage()
-                end
-                UIDropDownMenu_AddButton(info, level)
-
-                info = {}
                 info.text = "Other"
                 info.checked = ModernSpellBook_DB.iconFrame.other
                 info.keepShownOnClick = 1
@@ -1233,6 +1223,10 @@ function ModernSpellBookFrame:GetPlayerSpells(showGeneralTab)
                 end
             end
         end
+        -- Sort each category alphabetically
+        for tabName, spells in pairs(allSpellsDict) do
+            table.sort(spells, function(a, b) return a.spellName < b.spellName end)
+        end
         -- Split profession spells from General into their own subcategory
         if allSpellsDict[GENERAL] then
             local profSpells = {}
@@ -1314,6 +1308,11 @@ function ModernSpellBookFrame:GetPlayerSpells(showGeneralTab)
                 table.insert(allSpellsDict[tabName], passiveSpells[i])
             end
         end
+    end
+
+    -- Sort each category alphabetically (learned spells mixed with passives)
+    for tabName, spells in pairs(allSpellsDict) do
+        table.sort(spells, function(a, b) return a.spellName < b.spellName end)
     end
 
     -- Merge unlearned spells from trainer data
