@@ -180,18 +180,19 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame.newGlow:SetAlpha(1)
 
     -- "New" badge for newly learned spells
-    spellFrame.newSpellBadge = CreateFrame("Frame", nil, spellFrame.newGlowFrame)
+    spellFrame.newSpellBadge = CreateFrame("Frame", nil, spellFrame)
     spellFrame.newSpellBadge:SetWidth(32)
     spellFrame.newSpellBadge:SetHeight(14)
     spellFrame.newSpellBadge:SetPoint("BOTTOM", spellFrame, "TOP", 0, 2)
-    spellFrame.newSpellBadge:SetFrameLevel(spellFrame:GetFrameLevel() + 16)
+    spellFrame.newSpellBadge:SetFrameLevel(spellFrame:GetFrameLevel() + 12)
+    spellFrame.newSpellBadge:Hide()
     spellFrame.newSpellBadge:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
         tile = true, tileSize = 8, edgeSize = 8,
         insets = { left = 2, right = 2, top = 2, bottom = 2 }
     })
-    spellFrame.newSpellBadge:SetBackdropColor(1, 0.878, 0.078, 0.8)
+    spellFrame.newSpellBadge:SetBackdropColor(1, 0.878, 0.078, 0.7)
     spellFrame.newSpellBadge:SetBackdropBorderColor(1, 0.9, 0.1, 0.8)
     local newBadgeText = spellFrame.newSpellBadge:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     newBadgeText:SetPoint("CENTER", spellFrame.newSpellBadge, "CENTER", 0, 1)
@@ -314,11 +315,12 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame.availableGlow:SetAlpha(1)
 
     -- "New" badge for available-to-learn spells
-    spellFrame.newBadge = CreateFrame("Frame", nil, spellFrame.availableGlowFrame)
+    spellFrame.newBadge = CreateFrame("Frame", nil, spellFrame)
     spellFrame.newBadge:SetWidth(32)
     spellFrame.newBadge:SetHeight(14)
     spellFrame.newBadge:SetPoint("BOTTOM", spellFrame.icon, "TOP", 0, 2)
-    spellFrame.newBadge:SetFrameLevel(spellFrame:GetFrameLevel() + 9)
+    spellFrame.newBadge:SetFrameLevel(spellFrame:GetFrameLevel() + 7)
+    spellFrame.newBadge:Hide()
     spellFrame.newBadge:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -416,11 +418,22 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
         local isNew = knownSpell and string.find(knownSpell, NEW_KEYWORD) ~= nil
 
         if isNew and not spellInfo.isPassive then
-            spellFrame.newGlowFrame:ClearAllPoints()
-            spellFrame.newGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0.5, 0)
-            spellFrame.newGlowFrame:Show()
+            local hl = ModernSpellBook_DB.highlights
+            if hl and hl.learnedGlow then
+                spellFrame.newGlowFrame:ClearAllPoints()
+                spellFrame.newGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0.5, 0)
+                spellFrame.newGlowFrame:Show()
+            else
+                spellFrame.newGlowFrame:Hide()
+            end
+            if hl and hl.learnedBadge then
+                spellFrame.newSpellBadge:Show()
+            else
+                spellFrame.newSpellBadge:Hide()
+            end
         else
             spellFrame.newGlowFrame:Hide()
+            spellFrame.newSpellBadge:Hide()
         end
 
         -- Show animated glow for unlearned trainer spells now available at player's level
@@ -428,17 +441,29 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
             local playerLevel = UnitLevel("player")
             local availKey = spellInfo.spellName .. (spellInfo.spellRank or "")
             local alreadySeen = ModernSpellBook_DB.seenAvailable and ModernSpellBook_DB.seenAvailable[availKey]
+            local hl = ModernSpellBook_DB.highlights
             if spellInfo.levelReq <= playerLevel and not alreadySeen then
-                spellFrame.availableGlowFrame:ClearAllPoints()
-                spellFrame.availableGlowFrame:SetWidth(60)
-                spellFrame.availableGlowFrame:SetHeight(60)
-                spellFrame.availableGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0, 0)
-                spellFrame.availableGlowFrame:Show()
+                if hl and hl.availableGlow then
+                    spellFrame.availableGlowFrame:ClearAllPoints()
+                    spellFrame.availableGlowFrame:SetWidth(60)
+                    spellFrame.availableGlowFrame:SetHeight(60)
+                    spellFrame.availableGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0, 0)
+                    spellFrame.availableGlowFrame:Show()
+                else
+                    spellFrame.availableGlowFrame:Hide()
+                end
+                if hl and hl.availableBadge then
+                    spellFrame.newBadge:Show()
+                else
+                    spellFrame.newBadge:Hide()
+                end
             else
                 spellFrame.availableGlowFrame:Hide()
+                spellFrame.newBadge:Hide()
             end
         else
             spellFrame.availableGlowFrame:Hide()
+            spellFrame.newBadge:Hide()
         end
 
         spellFrame:SetPoint("TOPLEFT", ModernSpellBookFrame, "TOPLEFT", HORIZONTAL_OFFSET +SPELL_INSET +SECOND_PAGE_OFFSET*(page -1) +grid_x *SPELL_HORIZONTAL_SPACING, -80 +currentPageRows *-VERTICAL_SPACING)
@@ -476,9 +501,10 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
         spellFrame:SetScript("OnEnter", function()
             spellFrame.checkedGlow:SetAlpha(spellFrame.checkedGlow.checkedAlpha)
 
-            -- Dismiss available-to-learn glow on hover
+            -- Dismiss available-to-learn glow and badge on hover
             if spellFrame.availableGlowFrame:IsShown() then
                 spellFrame.availableGlowFrame:Hide()
+                spellFrame.newBadge:Hide()
                 if not ModernSpellBook_DB.seenAvailable then
                     ModernSpellBook_DB.seenAvailable = {}
                 end
@@ -491,6 +517,7 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
                 isNew = false
             end
             spellFrame.newGlowFrame:Hide()
+            spellFrame.newSpellBadge:Hide()
 
             GameTooltip:SetOwner(spellFrame, "ANCHOR_RIGHT")
             if spellInfo.isUnlearned then

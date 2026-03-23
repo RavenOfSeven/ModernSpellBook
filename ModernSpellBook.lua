@@ -42,6 +42,9 @@ ModernSpellBookFrame.ADDON_LOADED = function(self, event, addon)
     if ModernSpellBook_DB.showUnlearned == nil then
         ModernSpellBook_DB.showUnlearned = true
     end
+    if not ModernSpellBook_DB.highlights then
+        ModernSpellBook_DB.highlights = { learnedGlow = true, learnedBadge = true, availableGlow = true, availableBadge = true }
+    end
     ModernSpellBookFrame:AlterOlderSavedVariables()
 
     ModernSpellBookFrame.ClientLocale = ModernSpellBookFrame.Locales[GetLocale()] or ModernSpellBookFrame.Locales["enUS"]
@@ -477,6 +480,14 @@ function ModernSpellBookFrame:AddSettingsButton()
             end
             UIDropDownMenu_AddButton(info, level)
 
+            -- Highlights submenu
+            info = {}
+            info.text = "Highlights"
+            info.hasArrow = 1
+            info.notCheckable = 1
+            info.value = "highlights"
+            UIDropDownMenu_AddButton(info, level)
+
             -- Spell Text Color submenu
             info = {}
             info.text = "Spell text color"
@@ -512,6 +523,47 @@ function ModernSpellBookFrame:AddSettingsButton()
                     ModernSpellBook_DB.textColorMode = "dark"
                     ModernSpellBookFrame:DrawPage()
                     CloseDropDownMenus()
+                end
+                UIDropDownMenu_AddButton(info, level)
+
+            elseif UIDROPDOWNMENU_MENU_VALUE == "highlights" then
+                info = {}
+                info.text = "Learned spells glow"
+                info.checked = ModernSpellBook_DB.highlights.learnedGlow
+                info.keepShownOnClick = 1
+                info.func = function()
+                    ModernSpellBook_DB.highlights.learnedGlow = not ModernSpellBook_DB.highlights.learnedGlow
+                    ModernSpellBookFrame:DrawPage()
+                end
+                UIDropDownMenu_AddButton(info, level)
+
+                info = {}
+                info.text = "Learned spells badge"
+                info.checked = ModernSpellBook_DB.highlights.learnedBadge
+                info.keepShownOnClick = 1
+                info.func = function()
+                    ModernSpellBook_DB.highlights.learnedBadge = not ModernSpellBook_DB.highlights.learnedBadge
+                    ModernSpellBookFrame:DrawPage()
+                end
+                UIDropDownMenu_AddButton(info, level)
+
+                info = {}
+                info.text = "Available spells glow"
+                info.checked = ModernSpellBook_DB.highlights.availableGlow
+                info.keepShownOnClick = 1
+                info.func = function()
+                    ModernSpellBook_DB.highlights.availableGlow = not ModernSpellBook_DB.highlights.availableGlow
+                    ModernSpellBookFrame:DrawPage()
+                end
+                UIDropDownMenu_AddButton(info, level)
+
+                info = {}
+                info.text = "Available spells badge"
+                info.checked = ModernSpellBook_DB.highlights.availableBadge
+                info.keepShownOnClick = 1
+                info.func = function()
+                    ModernSpellBook_DB.highlights.availableBadge = not ModernSpellBook_DB.highlights.availableBadge
+                    ModernSpellBookFrame:DrawPage()
                 end
                 UIDropDownMenu_AddButton(info, level)
 
