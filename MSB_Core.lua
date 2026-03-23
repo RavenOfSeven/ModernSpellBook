@@ -56,7 +56,7 @@ ModernSpellBookFrame.ADDON_LOADED = function(self, event, addon)
     end
     ModernSpellBookFrame:AlterOlderSavedVariables()
 
-    ModernSpellBookFrame.ClientLocale = ModernSpellBookFrame.Locales[GetLocale()] or ModernSpellBookFrame.Locales["enUS"]
+    ModernSpellBookFrame.ClientLocale = Localization.current
     ModernSpellBookFrame.currentPage = ModernSpellBook_DB.rememberPage and ModernSpellBook_DB.lastPage or 1
     ModernSpellBookFrame.maxPages = 1
     ModernSpellBookFrame.stanceButtons = {}
@@ -69,7 +69,10 @@ ModernSpellBookFrame.ADDON_LOADED = function(self, event, addon)
 
     ModernSpellBookFrame:AddPageButtons()
     ModernSpellBookFrame:AddCancelButton()
-    ModernSpellBookFrame:AddSettingsButton()
+    ModernSpellBookFrame.settingsMenu = CSettingsMenu(
+        ModernSpellBookFrame,
+        function() ModernSpellBookFrame:DrawPage() end
+    )
 
     ModernSpellBookFrame:SetShape(ModernSpellBook_DB.isMinimized)
 
@@ -676,9 +679,7 @@ ModernSpellBookFrame:RegisterEvent("ADDON_LOADED")
 ModernSpellBookFrame:RegisterEvent("SPELLS_CHANGED")
 ModernSpellBookFrame:SetScript("OnEvent", ModernSpellBookFrame.OnEvent)
 
-ModernSpellBookFrame:SetScript("OnHide", function()
-    ActionBarHelper:HideAllGrids()
-end)
+
 
 ModernSpellBookFrame:SetScript("OnShow", function()
     PlaySound(SOUNDKIT.IG_SPELLBOOK_OPEN)
@@ -712,7 +713,7 @@ ModernSpellBookFrame:SetScript("OnShow", function()
         -- Restore last selected tab
         local lastTab = ModernSpellBook_DB.rememberPage and ModernSpellBook_DB.lastTab or 1
         if lastTab > 1 and ModernSpellBookFrame.Tabgroups[lastTab] then
-            ModernSpellBookFrame.Tabgroups[lastTab]:Click()
+            ModernSpellBookFrame.Tabgroups[lastTab].frame:Click()
         end
     else
         ModernSpellBookFrame.tab3:UpdateAsPetTab()
@@ -733,13 +734,10 @@ ModernSpellBookFrame:SetScript("OnShow", function()
             ModernSpellBookFrame.selectedTab = 1
             -- Visually reset tabs without triggering a separate DrawPage
             for _, tab in ipairs(ModernSpellBookFrame.Tabgroups) do
-                tab:SetNormalTexture("Interface\\Spellbook\\UI-SpellBook-Tab-Unselected")
-                tab:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5, 1)
-                tab:GetFontString():SetTextColor(0.5, 0.41, 0)
+                tab:SetDeselected()
             end
-            ModernSpellBookFrame.Tabgroups[1]:SetNormalTexture("Interface\\Spellbook\\UI-SpellBook-Tab3-Selected")
-            ModernSpellBookFrame.Tabgroups[1]:GetNormalTexture():SetVertexColor(1, 1, 1, 1)
-            ModernSpellBookFrame.Tabgroups[1]:GetFontString():SetTextColor(1, 0.82, 0)
+            ModernSpellBookFrame.Tabgroups[1]:SetSelected()
+            ModernSpellBookFrame.Tabgroups[1]:SetDefaultFontColor()
         end
         spellUpdateRequired = true
     end

@@ -14,6 +14,7 @@ MSB_Compat.lua
 MSB_TextStyle.lua
 MSB_UIFactories.lua
 MSB_SearchBar.lua
+MSB_Localization.lua
 MSB_Core.lua
 MSB_SpellData.lua
 MSB_Settings.lua
@@ -24,5 +25,4 @@ MSB_SpellFrame.lua
 MSB_Stances.lua
 MSB_TrainerData.lua
 MSB_Talents.lua
-MSB_Localization.lua
 MSB_Tabs.lua
