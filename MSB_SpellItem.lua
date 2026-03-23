@@ -90,7 +90,6 @@ class "CSpellItem"
 		self.frame:SetScript("OnClick", function()
 			if (spellInfo.isUnlearned) then return end
 			if (spellInfo.isPassive) then return end
-			if (InCombatLockdown()) then return end
 			if (spellInfo.isPetSpell) then
 				if (spellInfo.castName) then
 					CastPetAction(spellInfo.castName)
@@ -250,7 +249,6 @@ class "CSpellItem"
 		if (not spellInfo.isPassive and not spellInfo.isUnlearned) then
 			frame:SetMovable(true)
 			frame:SetScript("OnDragStart", function()
-				if (InCombatLockdown()) then return end
 				if (spellInfo.isPetSpell) then
 					PickupSpell(spellInfo.spellID, BOOKTYPE_PET)
 				else

@@ -109,7 +109,7 @@ class "CCategoryItem"
 local totalSpellItems = 0
 local totalCategoryItems = 0
 
-function ModernSpellBookFrame:CleanPages()
+CSpellBook.CleanPages = function(self)
 	for i = 1, totalSpellItems do
 		ModernSpellBookFrame["Spell".. i]:Hide()
 	end
@@ -118,7 +118,7 @@ function ModernSpellBookFrame:CleanPages()
 	end
 end
 
-function ModernSpellBookFrame:GetOrCreateCategory(i)
+CSpellBook.GetOrCreateCategory = function(self, i)
 	local item = ModernSpellBookFrame["Category".. i]
 	if (item ~= nil) then
 		return item
@@ -129,7 +129,7 @@ function ModernSpellBookFrame:GetOrCreateCategory(i)
 	return item
 end
 
-function ModernSpellBookFrame:GetOrCreateSpellItem(i)
+CSpellBook.GetOrCreateSpellItem = function(self, i)
 	local item = ModernSpellBookFrame["Spell".. i]
 	if (item ~= nil) then
 		return item

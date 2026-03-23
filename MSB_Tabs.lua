@@ -130,7 +130,7 @@ class "CTab"
 			end
 		end
 
-		ModernSpellBookFrame:PositionAllTabs()
+		SpellBook:PositionAllTabs()
 	end;
 
 	-- ======================== VISUAL STATE =======================
@@ -187,7 +187,7 @@ class "CTab"
 
 ModernSpellBookFrame.Tabgroups = {}
 
-function ModernSpellBookFrame:NewTab(name)
+CSpellBook.NewTab = function(self, name)
 	local tabNumber = table.getn(ModernSpellBookFrame.Tabgroups) + 1
 
 	local tab = CTab(ModernSpellBookFrame, name, tabNumber, function(clickedTab)
@@ -209,14 +209,14 @@ function ModernSpellBookFrame:NewTab(name)
 		ModernSpellBookFrame.currentPage = 1
 		ModernSpellBook_DB.lastPage = 1
 		ModernSpellBookFrame.previousPage:Disable()
-		ModernSpellBookFrame:DrawPage()
+		SpellBook:DrawPage()
 	end)
 
 	table.insert(ModernSpellBookFrame.Tabgroups, tab)
 	return tab
 end
 
-function ModernSpellBookFrame:GetFinalVisibleTab()
+CSpellBook.GetFinalVisibleTab = function(self)
 	local finalVisibleTab = 1
 	for i = 1, table.getn(ModernSpellBookFrame.Tabgroups) do
 		if (ModernSpellBookFrame.Tabgroups[i]:IsShown()) then
@@ -227,7 +227,7 @@ function ModernSpellBookFrame:GetFinalVisibleTab()
 end
 
 local leftButtons = {"ShowPassiveSpellsCheckBox", "ShowAllSpellRanksCheckbox", "ModernSpellBookFrameSearchBar"}
-function ModernSpellBookFrame:GetRightmostLeftButton()
+CSpellBook.GetRightmostLeftButton = function(self)
 	local finalVisibleButton = _G[leftButtons[1]]
 
 	for _, item in ipairs(leftButtons) do
@@ -241,15 +241,15 @@ function ModernSpellBookFrame:GetRightmostLeftButton()
 	return ShowPassiveSpellsCheckBox
 end
 
-function ModernSpellBookFrame:PositionAllTabs()
+CSpellBook.PositionAllTabs = function(self)
 	if (ModernSpellBook_DB.isMinimized) then
 		for _, tab in ipairs(ModernSpellBookFrame.Tabgroups) do
 			tab:UpdatePosition(false, ModernSpellBookFrame.Tabgroups)
 		end
 
-		local lastTab = ModernSpellBookFrame:GetFinalVisibleTab()
+		local lastTab = SpellBook:GetFinalVisibleTab()
 		local left = lastTab:GetRight()
-		local right = ModernSpellBookFrame:GetRightmostLeftButton():GetLeft()
+		local right = SpellBook:GetRightmostLeftButton():GetLeft()
 
 		for _, tab in ipairs(ModernSpellBookFrame.Tabgroups) do
 			tab:SetMinmaxPosition(left and right and left > right, ModernSpellBookFrame.Tabgroups)
