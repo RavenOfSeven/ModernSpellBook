@@ -10,7 +10,12 @@
 ## SavedVariablesPerCharacter: ModernSpellBook_DB
 
 MSB_Compat.lua
+MSB_Class.lua
+MSB_TextStyle.lua
+MSB_UIFactories.lua
 MSB_Core.lua
+MSB_SpellData.lua
+MSB_Settings.lua
 MSB_ActionBar.lua
 MSB_SpellFrame.lua
 MSB_Stances.lua

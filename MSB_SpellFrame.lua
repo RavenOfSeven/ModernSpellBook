@@ -1,7 +1,8 @@
 local totalSpellIconFrames = 0
 local totalSpellCategoryFrames = 0
 
-local NEW_KEYWORD = string.lower(";".. NEW.. ";")
+-- Uses global MSB_NEW_KEYWORD from MSB_SpellData.lua
+local NEW_KEYWORD = MSB_NEW_KEYWORD
 local SPELL_ICON_SIZE = 28
 local TOTAL_SPELL_SIZE = 40
 local SPELL_HORIZONTAL_SPACING = 150
@@ -112,6 +113,351 @@ function ModernSpellBookFrame:GetOrCreateCategory(i)
     return categoryFrame
 end
 
+-- ============================================================
+-- Set() helper functions (extracted from the monolithic Set())
+-- ============================================================
+
+local function SetClickHandler(spellFrame, spellInfo)
+    spellFrame:SetScript("OnClick", function()
+        if spellInfo.isUnlearned then return end
+        if spellInfo.isPassive then return end
+        if InCombatLockdown() then return end
+        if spellInfo.isPetSpell then
+            if spellInfo.castName then
+                CastPetAction(spellInfo.castName)
+                C_Timer.After(0.2, function()
+                    if spellInfo.castName == nil then
+                        UIErrorsFrame:AddMessage("ModernSpellBook: Warning - Pet spell ".. spellInfo.spellName.. " cannot be cast outside the pet action bar. Please drag the spell there.", 1.0, 0.1, 0.1, 1.0)
+                        PlaySound("igQuestFailed")
+                        return
+                    end
+                    local name, texture = GetPetActionInfo(spellInfo.castName)
+                    spellFrame.icon:SetTexture(texture)
+                end)
+            else
+                UIErrorsFrame:AddMessage("ModernSpellBook: Warning - Pet spell ".. spellInfo.spellName.. " cannot be cast outside the pet action bar. Please drag the spell there.", 1.0, 0.1, 0.1, 1.0)
+                PlaySound("igQuestFailed")
+            end
+        else
+            CastSpellByName(spellInfo.castName)
+        end
+    end)
+end
+
+local function SetTextContent(spellFrame, spellInfo)
+    spellFrame.text:SetFont("Fonts\\FRIZQT__.TTF", ModernSpellBook_DB and ModernSpellBook_DB.fontSize or 11.5)
+    spellFrame.icon:SetTexture(spellInfo.spellIcon)
+    spellFrame.text:SetText(spellInfo.spellName)
+    if spellInfo.isUnlearned and spellInfo.levelReq and spellInfo.levelReq > 0 then
+        local rankText = spellInfo.spellRank or ""
+        if rankText ~= "" then
+            spellFrame.subText:SetText(rankText .. " (Lvl " .. spellInfo.levelReq .. ")")
+        else
+            spellFrame.subText:SetText("Lvl " .. spellInfo.levelReq)
+        end
+    else
+        spellFrame.subText:SetText(spellInfo.spellRank)
+    end
+    spellFrame.spellID = spellInfo.spellID
+    spellFrame.bookType = spellInfo.bookType
+end
+
+local function SetTextPosition(spellFrame, spellInfo)
+    local nameHeight = 13
+    if spellFrame.text.GetStringHeight then
+        nameHeight = spellFrame.text:GetStringHeight()
+    elseif spellFrame.text.GetHeight then
+        nameHeight = spellFrame.text:GetHeight()
+    end
+    local subHeight = 0
+    local hasSubText = (spellInfo.spellRank and spellInfo.spellRank ~= "")
+        or (spellInfo.isUnlearned and spellInfo.levelReq and spellInfo.levelReq > 0)
+    if hasSubText then
+        subHeight = 11
+    end
+    local totalHeight = nameHeight + subHeight
+    local yOffset = (SPELL_ICON_SIZE - totalHeight) / 2
+    spellFrame.textGroup:ClearAllPoints()
+    spellFrame.textGroup:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", 36, -yOffset)
+end
+
+local function SetHighlights(spellFrame, spellInfo, isNew)
+    local hl = ModernSpellBook_DB.highlights
+    -- Learned spell glow/badge
+    if isNew and not spellInfo.isPassive then
+        if hl and hl.learnedGlow then
+            spellFrame.newGlowFrame:ClearAllPoints()
+            spellFrame.newGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0.5, 0)
+            spellFrame.newGlowFrame:Show()
+        else
+            spellFrame.newGlowFrame:Hide()
+        end
+        if hl and hl.learnedBadge then
+            spellFrame.newSpellBadge:Show()
+        else
+            spellFrame.newSpellBadge:Hide()
+        end
+    else
+        spellFrame.newGlowFrame:Hide()
+        spellFrame.newSpellBadge:Hide()
+    end
+
+    -- Available-to-learn glow/badge
+    if spellInfo.isUnlearned and not spellInfo.isTalent and spellInfo.levelReq then
+        local playerLevel = UnitLevel("player")
+        local availKey = spellInfo.spellName .. (spellInfo.spellRank or "")
+        local alreadySeen = ModernSpellBook_DB.seenAvailable and ModernSpellBook_DB.seenAvailable[availKey]
+        if spellInfo.levelReq <= playerLevel and not alreadySeen and not spellInfo.talentBlocked then
+            if hl and hl.availableGlow then
+                spellFrame.availableGlowFrame:ClearAllPoints()
+                spellFrame.availableGlowFrame:SetWidth(60)
+                spellFrame.availableGlowFrame:SetHeight(60)
+                spellFrame.availableGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0, 0)
+                spellFrame.availableGlowFrame:Show()
+            else
+                spellFrame.availableGlowFrame:Hide()
+            end
+            if hl and hl.availableBadge then
+                spellFrame.newBadge:Show()
+            else
+                spellFrame.newBadge:Hide()
+            end
+        else
+            spellFrame.availableGlowFrame:Hide()
+            spellFrame.newBadge:Hide()
+        end
+    else
+        spellFrame.availableGlowFrame:Hide()
+        spellFrame.newBadge:Hide()
+    end
+end
+
+local function SetChatLinkHandler(spellFrame, spellInfo)
+    spellFrame:SetScript("OnMouseDown", function()
+        local button = arg1
+        local isChatLink = IsModifiedClick and IsModifiedClick("CHATLINK") or IsShiftKeyDown()
+        if isChatLink then
+            if MacroFrameText and MacroFrameText.HasFocus and MacroFrameText:HasFocus() then
+                if spellInfo.isPassive then return end
+                if spellInfo.spellRank == "" then
+                    ChatEdit_InsertLink(spellInfo.spellName)
+                elseif spellInfo.spellRank ~= "" then
+                    ChatEdit_InsertLink(spellInfo.spellName.. "(".. spellInfo.spellRank.. ")")
+                end
+            elseif spellInfo.isTalent then
+                local chatlink = GetTalentLink(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
+                if chatlink then
+                    ChatEdit_InsertLink(chatlink)
+                else
+                    ChatEdit_InsertLink(spellInfo.spellName)
+                end
+            else
+                local spellLink = "|cff71d5ff|Hspell:".. spellInfo.spellID .. "|h[".. spellInfo.spellName .."]|h|r"
+                ChatEdit_InsertLink(spellLink)
+            end
+        end
+        return;
+    end)
+end
+
+local function SetTooltipHandler(spellFrame, spellInfo, lookupString, isNew)
+    spellFrame:SetScript("OnEnter", function()
+        spellFrame.checkedGlow:SetAlpha(spellFrame.checkedGlow.checkedAlpha)
+
+        -- Dismiss available-to-learn glow and badge on hover
+        if spellFrame.availableGlowFrame:IsShown() then
+            spellFrame.availableGlowFrame:Hide()
+            spellFrame.newBadge:Hide()
+            if not ModernSpellBook_DB.seenAvailable then
+                ModernSpellBook_DB.seenAvailable = {}
+            end
+            local availKey = spellInfo.spellName .. (spellInfo.spellRank or "")
+            ModernSpellBook_DB.seenAvailable[availKey] = true
+        end
+
+        if isNew then
+            ModernSpellBook_DB.knownSpells[lookupString] = string.gsub(ModernSpellBook_DB.knownSpells[lookupString], NEW_KEYWORD, "")
+            isNew = false
+        end
+        spellFrame.newGlowFrame:Hide()
+        spellFrame.newSpellBadge:Hide()
+
+        GameTooltip:SetOwner(spellFrame, "ANCHOR_RIGHT")
+        if spellInfo.isUnlearned then
+            local shownFullTooltip = false
+            if spellInfo.isTalent and spellInfo.talentGrid and GameTooltip.SetTalent then
+                pcall(function()
+                    GameTooltip:SetTalent(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
+                    shownFullTooltip = true
+                end)
+            end
+            if not shownFullTooltip then
+                local rankText = spellInfo.spellRank or ""
+                if rankText ~= "" then
+                    GameTooltip:SetText(spellInfo.spellName .. " - " .. rankText, 1, 1, 1)
+                else
+                    GameTooltip:SetText(spellInfo.spellName, 1, 1, 1)
+                end
+                if spellInfo.description then
+                    GameTooltip:AddLine(spellInfo.description, 1, 0.82, 0, true)
+                end
+            end
+            if spellInfo.levelReq and spellInfo.levelReq > 0 then
+                GameTooltip:AddLine("Requires Level " .. spellInfo.levelReq, 1, 0.2, 0.2)
+            end
+            if spellInfo.isTalent then
+                GameTooltip:AddLine("Requires talent point.", 1, 0.82, 0)
+            else
+                GameTooltip:AddLine("Visit a class trainer to learn.", 1, 0.82, 0)
+            end
+        elseif not spellInfo.isTalent then
+            if spellInfo.bookType then
+                GameTooltip:SetSpell(spellInfo.spellID, spellInfo.bookType)
+            else
+                GameTooltip:SetSpellByID(spellInfo.spellID)
+            end
+        else
+            if GameTooltip.SetTalent then
+                GameTooltip:SetTalent(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
+            else
+                local talentLink = GetTalentLink(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
+                if talentLink then
+                    GameTooltip:SetHyperlink(talentLink)
+                else
+                    GameTooltip:SetText(spellInfo.spellName)
+                end
+            end
+        end
+        GameTooltip:Show()
+    end)
+end
+
+local function SetCooldownAndDrag(spellFrame, spellInfo)
+    if not spellInfo.isPassive and not spellInfo.isUnlearned then
+        spellFrame:SetMovable(true)
+        spellFrame:SetScript("OnDragStart", function()
+            if InCombatLockdown() then return end
+            if spellInfo.isPetSpell then
+                PickupSpell(spellInfo.spellID, BOOKTYPE_PET)
+            else
+                PickupSpell(spellInfo.spellID, BOOKTYPE_SPELL)
+            end
+        end)
+        spellFrame:SetScript("OnUpdate", function()
+            local start, duration, enable
+            if spellInfo.bookType then
+                start, duration, enable = GetSpellCooldown(spellInfo.spellID, spellInfo.bookType)
+            else
+                start, duration, enable = GetSpellCooldown(spellInfo.spellName)
+            end
+            if start and spellFrame.cooldown then
+                local cdFunc = CooldownFrame_SetTimer or CooldownFrame_Set
+                if cdFunc then cdFunc(spellFrame.cooldown, start, duration, enable) end
+            end
+        end)
+    else
+        if spellFrame.cooldown then spellFrame.cooldown:Hide() end
+        spellFrame:SetMovable(false)
+        spellFrame:SetScript("OnUpdate", nil)
+        spellFrame:SetScript("OnDragStart", nil)
+    end
+end
+
+local function SetIconStyle(spellFrame, spellInfo)
+    if spellInfo.isPassive then
+        if SetPortraitToTexture then
+            SetPortraitToTexture(spellFrame.icon, spellInfo.spellIcon)
+        else
+            spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
+        end
+        spellFrame.icon:SetVertexColor(1, 1, 1)
+        spellFrame.tile:SetTexture("")
+        spellFrame.tile:SetAlpha(0)
+        spellFrame.fancyFrame:Hide()
+        spellFrame.roundBorderFrame:Show()
+        spellFrame.checkedGlow.checkedAlpha = 0
+    else
+        spellFrame.icon:SetTexture(spellInfo.spellIcon)
+        spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
+        spellFrame.icon:SetVertexColor(1, 1, 1)
+        spellFrame.tile:SetAlpha(1)
+        spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 22)
+        spellFrame.tile:SetHeight(SPELL_ICON_SIZE + 22)
+        spellFrame.tile:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", -3, 3)
+        spellFrame.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
+        spellFrame.tile:SetVertexColor(1, 1, 1, 1)
+        spellFrame.roundBorderFrame:Hide()
+        spellFrame.border:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
+        spellFrame.border:SetDrawLayer("OVERLAY", 1)
+        spellFrame.border:SetVertexColor(1, 1, 1)
+        spellFrame.checkedGlow.checkedAlpha = 0.5
+    end
+    spellFrame.icon.isPassive = spellInfo.isPassive
+end
+
+local function SetFancyFrame(spellFrame, spellInfo)
+    if not spellFrame.fancyFrame then return end
+    local showFrame = true
+    if ModernSpellBook_DB and ModernSpellBook_DB.iconFrame then
+        local isOtherTab = ModernSpellBookFrame.selectedTab and ModernSpellBookFrame.selectedTab > 2
+        if spellInfo.isUnlearned then
+            showFrame = ModernSpellBook_DB.iconFrame.unlearned
+        elseif spellInfo.isPassive then
+            showFrame = false -- passives use round border
+        elseif isOtherTab then
+            showFrame = ModernSpellBook_DB.iconFrame.other
+        else
+            showFrame = ModernSpellBook_DB.iconFrame.spells
+        end
+    end
+    if showFrame then
+        spellFrame.fancyFrame:Show()
+    else
+        spellFrame.fancyFrame:Hide()
+    end
+end
+
+local function SetLearnedState(spellFrame, spellInfo)
+    if spellInfo.isUnlearned then
+        if spellFrame.icon.SetDesaturated then
+            spellFrame.icon:SetDesaturated(true)
+        else
+            spellFrame.icon:SetVertexColor(0.4, 0.4, 0.4)
+        end
+        spellFrame.icon:SetAlpha(0.5)
+        MSB_TextStyleInstance:ApplyToSpell(spellFrame.text, spellFrame.subText, spellFrame.lightBorder, "unlearned")
+        if spellFrame.fancyFrame then
+            local showUnlearnedFrame = ModernSpellBook_DB and ModernSpellBook_DB.iconFrame and ModernSpellBook_DB.iconFrame.unlearned
+            if not showUnlearnedFrame then
+                spellFrame.fancyFrame:Hide()
+            else
+                if spellFrame.border and spellFrame.border.SetDesaturated then
+                    spellFrame.border:SetDesaturated(true)
+                end
+                spellFrame.border:SetAlpha(0.5)
+            end
+        end
+        spellFrame.tile:SetAlpha(0.5)
+        spellFrame.checkedGlow.checkedAlpha = 0
+        spellFrame:SetMovable(false)
+        spellFrame:SetScript("OnDragStart", nil)
+        spellFrame:SetScript("OnUpdate", nil)
+    else
+        if spellFrame.icon.SetDesaturated then
+            spellFrame.icon:SetDesaturated(false)
+        end
+        if spellFrame.border and spellFrame.border.SetDesaturated then
+            spellFrame.border:SetDesaturated(false)
+        end
+        if spellFrame.border then spellFrame.border:SetAlpha(1) end
+        spellFrame.icon:SetAlpha(1)
+        spellFrame.tile:SetAlpha(1)
+        MSB_TextStyleInstance:ApplyToSpell(spellFrame.text, spellFrame.subText, spellFrame.lightBorder, "normal")
+    end
+end
+
+-- ============================================================
+
 function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     local spellFrame = ModernSpellBookFrame["Spell".. i]
     if spellFrame ~= nil then
@@ -141,14 +487,6 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
 
     spellFrame.text = spellFrame.textGroup:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     spellFrame.text:SetPoint("TOPLEFT", spellFrame.textGroup, "TOPLEFT", 0, 0)
-    if ModernSpellBook_DB and ModernSpellBook_DB.textColorMode == "dark" then
-        spellFrame.text:SetTextColor(0, 0, 0)
-        spellFrame.text:SetShadowOffset(0, 0)
-    else
-        spellFrame.text:SetTextColor(0.989, 0.857, 0.343)
-        spellFrame.text:SetShadowOffset(1, -1)
-        spellFrame.text:SetShadowColor(0, 0, 0, 0.7)
-    end
     if spellFrame.text.SetWordWrap then spellFrame.text:SetWordWrap(true) end
     spellFrame.text:SetWidth(98)
     spellFrame.text:SetJustifyH("LEFT")
@@ -161,44 +499,15 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame.lightBorder:SetHeight(TOTAL_SPELL_SIZE)
     spellFrame.lightBorder:SetPoint("LEFT", spellFrame, "CENTER", 0, 0)
     spellFrame.lightBorder:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-trail")
-    if ModernSpellBook_DB and ModernSpellBook_DB.textColorMode == "dark" then
-        spellFrame.lightBorder:SetBlendMode("ADD")
-    end
     spellFrame.lightBorder:SetAlpha(1)
 
-    -- === SpellIcon container: newGlow -> tile/socket -> icon -> border -> cooldown ===
+    -- === SpellIcon container ===
     -- New spell glow (on top of everything)
-    spellFrame.newGlowFrame = CreateFrame("Frame", nil, spellFrame)
-    spellFrame.newGlowFrame:SetWidth(60)
-    spellFrame.newGlowFrame:SetHeight(60)
-    spellFrame.newGlowFrame:SetPoint("CENTER", spellFrame, "CENTER", 0, 0)
-    spellFrame.newGlowFrame:SetFrameLevel(spellFrame:GetFrameLevel() + 15)
-    spellFrame.newGlow = spellFrame.newGlowFrame:CreateTexture(nil, "OVERLAY")
-    spellFrame.newGlow:SetAllPoints(spellFrame.newGlowFrame)
-    spellFrame.newGlow:SetTexture("Interface\\Buttons\\CheckButtonGlow")
-    spellFrame.newGlow:SetBlendMode("ADD")
-    spellFrame.newGlow:SetAlpha(1)
+    spellFrame.newGlowFrame, spellFrame.newGlow = MSB_CreateGlow(spellFrame, 60, nil, 15)
 
     -- "New" badge for newly learned spells
-    spellFrame.newSpellBadge = CreateFrame("Frame", nil, spellFrame)
-    spellFrame.newSpellBadge:SetWidth(32)
-    spellFrame.newSpellBadge:SetHeight(14)
+    spellFrame.newSpellBadge = MSB_CreateBadge(spellFrame, "New", {1, 0.878, 0.078, 0.7}, {1, 0.9, 0.1, 0.8}, 12)
     spellFrame.newSpellBadge:SetPoint("BOTTOM", spellFrame, "TOP", 0, 2)
-    spellFrame.newSpellBadge:SetFrameLevel(spellFrame:GetFrameLevel() + 12)
-    spellFrame.newSpellBadge:Hide()
-    spellFrame.newSpellBadge:SetBackdrop({
-        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true, tileSize = 8, edgeSize = 8,
-        insets = { left = 2, right = 2, top = 2, bottom = 2 }
-    })
-    spellFrame.newSpellBadge:SetBackdropColor(1, 0.878, 0.078, 0.7)
-    spellFrame.newSpellBadge:SetBackdropBorderColor(1, 0.9, 0.1, 0.8)
-    local newBadgeText = spellFrame.newSpellBadge:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    newBadgeText:SetPoint("CENTER", spellFrame.newSpellBadge, "CENTER", 0, 1)
-    newBadgeText:SetText("New")
-    newBadgeText:SetFont("Fonts\\FRIZQT__.TTF", 8)
-    newBadgeText:SetTextColor(1, 1, 1)
 
     -- Layer 2: Tile/socket background
     spellFrame.tile = spellFrame:CreateTexture(nil, "ARTWORK")
@@ -238,17 +547,10 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame.roundBorder:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\bluemenu-ring")
     spellFrame.roundBorderFrame:Hide()
 
-    -- Layer 5: Hover highlight (child frame to render above icon)
-    spellFrame.checkedGlowFrame = CreateFrame("Frame", nil, spellFrame)
-    spellFrame.checkedGlowFrame:SetWidth(SPELL_ICON_SIZE)
-    spellFrame.checkedGlowFrame:SetHeight(SPELL_ICON_SIZE)
+    -- Layer 5: Hover highlight
+    spellFrame.checkedGlowFrame, spellFrame.checkedGlow = MSB_CreateGlow(spellFrame, SPELL_ICON_SIZE, nil, 4, "Interface\\Buttons\\CheckButtonHilight")
     spellFrame.checkedGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0, 0)
-    spellFrame.checkedGlowFrame:SetFrameLevel(spellFrame:GetFrameLevel() + 4)
-
-    spellFrame.checkedGlow = spellFrame.checkedGlowFrame:CreateTexture(nil, "OVERLAY")
-    spellFrame.checkedGlow:SetAllPoints(spellFrame.checkedGlowFrame)
-    spellFrame.checkedGlow:SetTexture("Interface\\Buttons\\CheckButtonHilight")
-    spellFrame.checkedGlow:SetBlendMode("ADD")
+    spellFrame.checkedGlowFrame:Show()
     spellFrame.checkedGlow:SetAlpha(0)
     spellFrame.checkedGlow.checkedAlpha = 0.5
 
@@ -272,15 +574,10 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     -- Rank/passive text inside the text group
     spellFrame.subText = spellFrame.textGroup:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     spellFrame.subText:SetPoint("TOPLEFT", spellFrame.text, "BOTTOMLEFT", 0, -1)
-    if ModernSpellBook_DB and ModernSpellBook_DB.textColorMode == "dark" then
-        spellFrame.subText:SetTextColor(0, 0, 0)
-        spellFrame.subText:SetShadowOffset(0, 0)
-    else
-        spellFrame.subText:SetTextColor(1, 1, 1)
-        spellFrame.subText:SetShadowOffset(1, -1)
-        spellFrame.subText:SetShadowColor(0, 0, 0, 0.7)
-    end
     spellFrame.subText:SetFont("Fonts\\FRIZQT__.TTF", 9.5)
+
+    -- Apply initial text style (colors, shadows, blend mode)
+    MSB_TextStyleInstance:ApplyToSpell(spellFrame.text, spellFrame.subText, spellFrame.lightBorder, "normal")
     spellFrame.subText:SetJustifyH("LEFT")
     if spellFrame.subText.SetWordWrap then spellFrame.subText:SetWordWrap(true) end
     spellFrame.subText:SetWidth(80)
@@ -302,38 +599,11 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     spellFrame.activeLight:SetAlpha(0)
 
     -- Glow for unlearned spells that are now available to learn (tinted light blue)
-    spellFrame.availableGlowFrame = CreateFrame("Frame", nil, spellFrame)
-    spellFrame.availableGlowFrame:SetWidth(70)
-    spellFrame.availableGlowFrame:SetHeight(62)
-    spellFrame.availableGlowFrame:SetFrameLevel(spellFrame:GetFrameLevel() + 8)
-    spellFrame.availableGlowFrame:Hide()
-    spellFrame.availableGlow = spellFrame.availableGlowFrame:CreateTexture(nil, "OVERLAY")
-    spellFrame.availableGlow:SetAllPoints(spellFrame.availableGlowFrame)
-    spellFrame.availableGlow:SetTexture("Interface\\Buttons\\CheckButtonGlow")
-    spellFrame.availableGlow:SetBlendMode("ADD")
-    spellFrame.availableGlow:SetVertexColor(0.204, 0.765, 0.922)
-    spellFrame.availableGlow:SetAlpha(1)
+    spellFrame.availableGlowFrame, spellFrame.availableGlow = MSB_CreateGlow(spellFrame, 60, {0.204, 0.765, 0.922}, 8)
 
-    -- "New" badge for available-to-learn spells
-    spellFrame.newBadge = CreateFrame("Frame", nil, spellFrame)
-    spellFrame.newBadge:SetWidth(32)
-    spellFrame.newBadge:SetHeight(14)
+    -- "Train" badge for available-to-learn spells
+    spellFrame.newBadge = MSB_CreateBadge(spellFrame, "Train", {0, 0.8, 0, 0.4}, {0.1, 0.8, 0.1, 0.8}, 7)
     spellFrame.newBadge:SetPoint("BOTTOM", spellFrame.icon, "TOP", 0, 2)
-    spellFrame.newBadge:SetFrameLevel(spellFrame:GetFrameLevel() + 7)
-    spellFrame.newBadge:Hide()
-    spellFrame.newBadge:SetBackdrop({
-        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true, tileSize = 8, edgeSize = 8,
-        insets = { left = 2, right = 2, top = 2, bottom = 2 }
-    })
-    spellFrame.newBadge:SetBackdropColor(0, 0.8, 0, 0.4)
-    spellFrame.newBadge:SetBackdropBorderColor(0.1, 0.8, 0.1, 0.8)
-    spellFrame.newBadgeText = spellFrame.newBadge:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    spellFrame.newBadgeText:SetPoint("CENTER", spellFrame.newBadge, "CENTER", 0, 1)
-    spellFrame.newBadgeText:SetText("Train")
-    spellFrame.newBadgeText:SetFont("Fonts\\FRIZQT__.TTF", 8)
-    spellFrame.newBadgeText:SetTextColor(1, 1, 1)
 
     spellFrame.icon.isPassive = false
 
@@ -342,408 +612,39 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
     end
 
     function spellFrame:Set(spellInfo, currentPageRows, page, grid_x)
-        -- Set up click handler for casting (replaces SetAttribute-based casting)
-        spellFrame:SetScript("OnClick", function()
-            if spellInfo.isUnlearned then return end
-            if spellInfo.isPassive then return end
-            if InCombatLockdown() then return end
+        SetClickHandler(spellFrame, spellInfo)
+        SetTextContent(spellFrame, spellInfo)
 
-            if spellInfo.isPetSpell then
-                if spellInfo.castName then
-                    CastPetAction(spellInfo.castName)
-                    -- Update icon after a short delay in case it changed
-                    C_Timer.After(0.2, function()
-                        if spellInfo.castName == nil then
-                            UIErrorsFrame:AddMessage("ModernSpellBook: Warning - Pet spell ".. spellInfo.spellName.. " cannot be cast outside the pet action bar. Please drag the spell there.", 1.0, 0.1, 0.1, 1.0)
-                            PlaySound("igQuestFailed")
-                            return
-                        end
-                        local name, texture = GetPetActionInfo(spellInfo.castName)
-                        spellFrame.icon:SetTexture(texture)
-                    end)
-                else
-                    UIErrorsFrame:AddMessage("ModernSpellBook: Warning - Pet spell ".. spellInfo.spellName.. " cannot be cast outside the pet action bar. Please drag the spell there.", 1.0, 0.1, 0.1, 1.0)
-                    PlaySound("igQuestFailed")
-                end
-            else
-                -- Cast player spell by name (with rank if available)
-                CastSpellByName(spellInfo.castName)
-            end
-        end)
-
-        -- Update font size from settings
-        spellFrame.text:SetFont("Fonts\\FRIZQT__.TTF", ModernSpellBook_DB and ModernSpellBook_DB.fontSize or 11.5)
-
-        spellFrame.icon:SetTexture(spellInfo.spellIcon)
-        spellFrame.text:SetText(spellInfo.spellName)
-        if spellInfo.isUnlearned and spellInfo.levelReq and spellInfo.levelReq > 0 then
-            local rankText = spellInfo.spellRank or ""
-            if rankText ~= "" then
-                spellFrame.subText:SetText(rankText .. " (Lvl " .. spellInfo.levelReq .. ")")
-            else
-                spellFrame.subText:SetText("Lvl " .. spellInfo.levelReq)
-            end
-        else
-            spellFrame.subText:SetText(spellInfo.spellRank)
-        end
-        spellFrame.spellID = spellInfo.spellID
-        spellFrame.bookType = spellInfo.bookType
-
+        -- Stance detection
         local stanceState = false
         if spellInfo.stanceIndex ~= nil then
             local _, _, isActive = GetShapeshiftFormInfo(spellInfo.stanceIndex)
             stanceState = isActive
             ModernSpellBookFrame.stanceButtons[spellInfo.spellName] = spellFrame
         end
-
         spellFrame:SetStance(stanceState)
 
-        -- Calculate total text height and vertically center the group on the icon
-        local nameHeight = 13 -- default single line
-        if spellFrame.text.GetStringHeight then
-            nameHeight = spellFrame.text:GetStringHeight()
-        elseif spellFrame.text.GetHeight then
-            nameHeight = spellFrame.text:GetHeight()
-        end
-        local subHeight = 0
-        local hasSubText = (spellInfo.spellRank and spellInfo.spellRank ~= "")
-            or (spellInfo.isUnlearned and spellInfo.levelReq and spellInfo.levelReq > 0)
-        if hasSubText then
-            subHeight = 11 -- subText line height + gap
-        end
-        local totalHeight = nameHeight + subHeight
-        local yOffset = (SPELL_ICON_SIZE - totalHeight) / 2
-        spellFrame.textGroup:ClearAllPoints()
-        spellFrame.textGroup:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", 36, -yOffset)
+        SetTextPosition(spellFrame, spellInfo)
 
+        -- Lookup for new spell detection
         local lookupString = spellInfo.spellName.. spellInfo.spellRank
         local knownSpell = ModernSpellBook_DB.knownSpells[lookupString]
         local isNew = knownSpell and string.find(knownSpell, NEW_KEYWORD) ~= nil
 
-        if isNew and not spellInfo.isPassive then
-            local hl = ModernSpellBook_DB.highlights
-            if hl and hl.learnedGlow then
-                spellFrame.newGlowFrame:ClearAllPoints()
-                spellFrame.newGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0.5, 0)
-                spellFrame.newGlowFrame:Show()
-            else
-                spellFrame.newGlowFrame:Hide()
-            end
-            if hl and hl.learnedBadge then
-                spellFrame.newSpellBadge:Show()
-            else
-                spellFrame.newSpellBadge:Hide()
-            end
-        else
-            spellFrame.newGlowFrame:Hide()
-            spellFrame.newSpellBadge:Hide()
-        end
+        SetHighlights(spellFrame, spellInfo, isNew)
 
-        -- Show animated glow for unlearned trainer spells now available at player's level
-        if spellInfo.isUnlearned and not spellInfo.isTalent and spellInfo.levelReq then
-            local playerLevel = UnitLevel("player")
-            local availKey = spellInfo.spellName .. (spellInfo.spellRank or "")
-            local alreadySeen = ModernSpellBook_DB.seenAvailable and ModernSpellBook_DB.seenAvailable[availKey]
-            local hl = ModernSpellBook_DB.highlights
-            if spellInfo.levelReq <= playerLevel and not alreadySeen and not spellInfo.talentBlocked then
-                if hl and hl.availableGlow then
-                    spellFrame.availableGlowFrame:ClearAllPoints()
-                    spellFrame.availableGlowFrame:SetWidth(60)
-                    spellFrame.availableGlowFrame:SetHeight(60)
-                    spellFrame.availableGlowFrame:SetPoint("CENTER", spellFrame.icon, "CENTER", 0, 0)
-                    spellFrame.availableGlowFrame:Show()
-                else
-                    spellFrame.availableGlowFrame:Hide()
-                end
-                if hl and hl.availableBadge then
-                    spellFrame.newBadge:Show()
-                else
-                    spellFrame.newBadge:Hide()
-                end
-            else
-                spellFrame.availableGlowFrame:Hide()
-                spellFrame.newBadge:Hide()
-            end
-        else
-            spellFrame.availableGlowFrame:Hide()
-            spellFrame.newBadge:Hide()
-        end
-
+        -- Position on page
         spellFrame:SetPoint("TOPLEFT", ModernSpellBookFrame, "TOPLEFT", HORIZONTAL_OFFSET +SPELL_INSET +SECOND_PAGE_OFFSET*(page -1) +grid_x *SPELL_HORIZONTAL_SPACING, -80 +currentPageRows *-VERTICAL_SPACING)
 
-        -- Should be able to link spells to the chat
-        spellFrame:SetScript("OnMouseDown", function()
-            local button = arg1
-            local isChatLink = IsModifiedClick and IsModifiedClick("CHATLINK") or IsShiftKeyDown()
-            if isChatLink then
-                if MacroFrameText and MacroFrameText.HasFocus and MacroFrameText:HasFocus() then
-                    if spellInfo.isPassive then return end
+        SetChatLinkHandler(spellFrame, spellInfo)
+        SetTooltipHandler(spellFrame, spellInfo, lookupString, isNew)
+        SetCooldownAndDrag(spellFrame, spellInfo)
 
-                    if spellInfo.spellRank == "" then
-                        ChatEdit_InsertLink(spellInfo.spellName)
-                    elseif spellInfo.spellRank ~= "" then
-                        ChatEdit_InsertLink(spellInfo.spellName.. "(".. spellInfo.spellRank.. ")")
-                    end
-                elseif spellInfo.isTalent then
-                    local chatlink = GetTalentLink(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
-                    if chatlink then
-                        ChatEdit_InsertLink(chatlink)
-                    else
-                        ChatEdit_InsertLink(spellInfo.spellName)
-                    end
-                else
-                    local spellLink = "|cff71d5ff|Hspell:".. spellInfo.spellID .. "|h[".. spellInfo.spellName .."]|h|r"
-                    ChatEdit_InsertLink(spellLink)
-                end
-            end
-
-            return;
-        end)
-
-        -- When hovered display the spell's tooltip
-        spellFrame:SetScript("OnEnter", function()
-            spellFrame.checkedGlow:SetAlpha(spellFrame.checkedGlow.checkedAlpha)
-
-            -- Dismiss available-to-learn glow and badge on hover
-            if spellFrame.availableGlowFrame:IsShown() then
-                spellFrame.availableGlowFrame:Hide()
-                spellFrame.newBadge:Hide()
-                if not ModernSpellBook_DB.seenAvailable then
-                    ModernSpellBook_DB.seenAvailable = {}
-                end
-                local availKey = spellInfo.spellName .. (spellInfo.spellRank or "")
-                ModernSpellBook_DB.seenAvailable[availKey] = true
-            end
-
-            if isNew then
-                ModernSpellBook_DB.knownSpells[lookupString] = string.gsub(ModernSpellBook_DB.knownSpells[lookupString], NEW_KEYWORD, "")
-                isNew = false
-            end
-            spellFrame.newGlowFrame:Hide()
-            spellFrame.newSpellBadge:Hide()
-
-            GameTooltip:SetOwner(spellFrame, "ANCHOR_RIGHT")
-            if spellInfo.isUnlearned then
-                -- Talents can show full tooltip via SetTalent
-                local shownFullTooltip = false
-                if spellInfo.isTalent and spellInfo.talentGrid and GameTooltip.SetTalent then
-                    pcall(function()
-                        GameTooltip:SetTalent(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
-                        shownFullTooltip = true
-                    end)
-                end
-                if not shownFullTooltip then
-                    local rankText = spellInfo.spellRank or ""
-                    if rankText ~= "" then
-                        GameTooltip:SetText(spellInfo.spellName .. " - " .. rankText, 1, 1, 1)
-                    else
-                        GameTooltip:SetText(spellInfo.spellName, 1, 1, 1)
-                    end
-                    if spellInfo.description then
-                        GameTooltip:AddLine(spellInfo.description, 1, 0.82, 0, true)
-                    end
-                end
-                if spellInfo.levelReq and spellInfo.levelReq > 0 then
-                    GameTooltip:AddLine("Requires Level " .. spellInfo.levelReq, 1, 0.2, 0.2)
-                end
-                if spellInfo.isTalent then
-                    GameTooltip:AddLine("Requires talent point.", 1, 0.82, 0)
-                else
-                    GameTooltip:AddLine("Visit a class trainer to learn.", 1, 0.82, 0)
-                end
-            elseif not spellInfo.isTalent then
-                -- In vanilla, use SetSpell with spellbook slot and bookType
-                if spellInfo.bookType then
-                    GameTooltip:SetSpell(spellInfo.spellID, spellInfo.bookType)
-                else
-                    GameTooltip:SetSpellByID(spellInfo.spellID)
-                end
-            else
-                -- For talents, try SetTalent or use a hyperlink
-                if GameTooltip.SetTalent then
-                    GameTooltip:SetTalent(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
-                else
-                    local talentLink = GetTalentLink(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
-                    if talentLink then
-                        GameTooltip:SetHyperlink(talentLink)
-                    else
-                        GameTooltip:SetText(spellInfo.spellName)
-                    end
-                end
-            end
-            GameTooltip:Show()
-        end)
-
-        -- Add a dynamically updating cooldown
-        if not spellInfo.isPassive then
-            spellFrame:SetMovable(true)
-            spellFrame:SetScript("OnDragStart", function()
-                if InCombatLockdown() then return end
-                if spellInfo.isPetSpell then
-                    PickupSpell(spellInfo.spellID, BOOKTYPE_PET)
-                else
-                    PickupSpell(spellInfo.spellID, BOOKTYPE_SPELL)
-                end
-            end)
-
-            spellFrame:SetScript("OnUpdate", function()
-                -- Use spellbook slot index and bookType for cooldown query
-                local start, duration, enable
-                if spellInfo.bookType then
-                    start, duration, enable = GetSpellCooldown(spellInfo.spellID, spellInfo.bookType)
-                else
-                    -- Fallback: try by name
-                    start, duration, enable = GetSpellCooldown(spellInfo.spellName)
-                end
-                if start and spellFrame.cooldown then
-                    local cdFunc = CooldownFrame_SetTimer or CooldownFrame_Set
-                    if cdFunc then cdFunc(spellFrame.cooldown, start, duration, enable) end
-                end
-            end)
-        else
-            if spellFrame.cooldown then spellFrame.cooldown:Hide() end
-            spellFrame:SetMovable(false)
-            spellFrame:SetScript("OnUpdate", nil)
-            spellFrame:SetScript("OnDragStart", nil)
-        end
         spellFrame:Show()
 
-        -- Show/hide fancyFrame based on settings
-        if spellFrame.fancyFrame then
-            local showFrame = true
-            if ModernSpellBook_DB and ModernSpellBook_DB.iconFrame then
-                local isOtherTab = ModernSpellBookFrame.selectedTab and ModernSpellBookFrame.selectedTab > 2
-                if spellInfo.isUnlearned then
-                    showFrame = ModernSpellBook_DB.iconFrame.unlearned
-                elseif spellInfo.isPassive then
-                    showFrame = ModernSpellBook_DB.iconFrame.passives
-                elseif isOtherTab then
-                    showFrame = ModernSpellBook_DB.iconFrame.other
-                else
-                    showFrame = ModernSpellBook_DB.iconFrame.spells
-                end
-            end
-            if showFrame then
-                spellFrame.fancyFrame:Show()
-            else
-                spellFrame.fancyFrame:Hide()
-            end
-        end
-
-        if spellInfo.isPassive then
-            -- Round icon for passives
-            if SetPortraitToTexture then
-                SetPortraitToTexture(spellFrame.icon, spellInfo.spellIcon)
-            else
-                spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
-            end
-            spellFrame.icon:SetVertexColor(1, 1, 1)
-
-            -- Hide square elements, show round border
-            spellFrame.tile:SetTexture("")
-            spellFrame.tile:SetAlpha(0)
-            spellFrame.fancyFrame:Hide()
-            spellFrame.roundBorderFrame:Show()
-
-            spellFrame.checkedGlow.checkedAlpha = 0
-        else
-            -- Square icon for actives
-            spellFrame.icon:SetTexture(spellInfo.spellIcon)
-            spellFrame.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
-            spellFrame.icon:SetVertexColor(1, 1, 1)
-
-            -- Show square elements, hide round border
-            spellFrame.tile:SetAlpha(1)
-            spellFrame.tile:SetWidth(SPELL_ICON_SIZE + 22)
-            spellFrame.tile:SetHeight(SPELL_ICON_SIZE + 22)
-            spellFrame.tile:SetPoint("TOPLEFT", spellFrame, "TOPLEFT", -3, 3)
-            spellFrame.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
-            spellFrame.tile:SetVertexColor(1, 1, 1, 1)
-            spellFrame.roundBorderFrame:Hide()
-
-            spellFrame.border:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
-            spellFrame.border:SetDrawLayer("OVERLAY", 1)
-            spellFrame.border:SetVertexColor(1, 1, 1)
-
-            spellFrame.checkedGlow.checkedAlpha = 0.5
-        end
-        spellFrame.icon.isPassive = spellInfo.isPassive
-
-        if spellInfo.isUnlearned then
-            -- Desaturate unlearned spells
-            if spellFrame.icon.SetDesaturated then
-                spellFrame.icon:SetDesaturated(true)
-            else
-                spellFrame.icon:SetVertexColor(0.4, 0.4, 0.4)
-            end
-            spellFrame.icon:SetAlpha(0.5)
-            -- Desaturate the current text color mode
-            local isDark = ModernSpellBook_DB and ModernSpellBook_DB.textColorMode == "dark"
-            if isDark then
-                spellFrame.text:SetTextColor(0.4, 0.4, 0.4)
-                spellFrame.subText:SetTextColor(0.4, 0.4, 0.4)
-                spellFrame.text:SetShadowOffset(1, -1)
-                spellFrame.text:SetShadowColor(0, 0, 0, 0.7)
-                spellFrame.subText:SetShadowOffset(1, -1)
-                spellFrame.subText:SetShadowColor(0, 0, 0, 0.7)
-            else
-                -- Desaturate the gold/white by averaging towards grey
-                spellFrame.text:SetTextColor(0.6, 0.55, 0.35)
-                spellFrame.subText:SetTextColor(0.6, 0.6, 0.6)
-            end
-            if isDark then
-                spellFrame.lightBorder:SetBlendMode("ADD")
-            else
-                spellFrame.lightBorder:SetBlendMode("BLEND")
-                spellFrame.text:SetShadowOffset(1, -1)
-                spellFrame.text:SetShadowColor(0, 0, 0, 0.7)
-                spellFrame.subText:SetShadowOffset(1, -1)
-                spellFrame.subText:SetShadowColor(0, 0, 0, 0.7)
-            end
-            if spellFrame.fancyFrame then
-                local showUnlearnedFrame = ModernSpellBook_DB and ModernSpellBook_DB.iconFrame and ModernSpellBook_DB.iconFrame.unlearned
-                if not showUnlearnedFrame then
-                    spellFrame.fancyFrame:Hide()
-                else
-                    if spellFrame.border and spellFrame.border.SetDesaturated then
-                        spellFrame.border:SetDesaturated(true)
-                    end
-                    spellFrame.border:SetAlpha(0.5)
-                end
-            end
-            spellFrame.tile:SetAlpha(0.5)
-            spellFrame.checkedGlow.checkedAlpha = 0
-            spellFrame:SetMovable(false)
-            spellFrame:SetScript("OnDragStart", nil)
-            spellFrame:SetScript("OnUpdate", nil)
-        else
-            -- Reset for learned spells (in case frame was reused from unlearned)
-            if spellFrame.icon.SetDesaturated then
-                spellFrame.icon:SetDesaturated(false)
-            end
-            if spellFrame.border and spellFrame.border.SetDesaturated then
-                spellFrame.border:SetDesaturated(false)
-            end
-            if spellFrame.border then spellFrame.border:SetAlpha(1) end
-            spellFrame.icon:SetAlpha(1)
-            spellFrame.tile:SetAlpha(1)
-            local isDark = ModernSpellBook_DB and ModernSpellBook_DB.textColorMode == "dark"
-            if isDark then
-                spellFrame.text:SetTextColor(0, 0, 0)
-                spellFrame.subText:SetTextColor(0.2, 0.2, 0.2)
-                spellFrame.text:SetShadowOffset(0, 0)
-                spellFrame.subText:SetShadowOffset(0, 0)
-                spellFrame.lightBorder:SetBlendMode("ADD")
-            else
-                spellFrame.text:SetTextColor(0.989, 0.857, 0.343)
-                spellFrame.subText:SetTextColor(1, 1, 1)
-                spellFrame.lightBorder:SetBlendMode("BLEND")
-                spellFrame.text:SetShadowOffset(1, -1)
-                spellFrame.text:SetShadowColor(0, 0, 0, 0.7)
-                spellFrame.subText:SetShadowOffset(1, -1)
-                spellFrame.subText:SetShadowColor(0, 0, 0, 0.7)
-            end
-        end
+        SetFancyFrame(spellFrame, spellInfo)
+        SetIconStyle(spellFrame, spellInfo)
+        SetLearnedState(spellFrame, spellInfo)
     end
 
     return spellFrame
