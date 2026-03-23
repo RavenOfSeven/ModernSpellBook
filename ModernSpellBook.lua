@@ -1233,6 +1233,24 @@ function ModernSpellBookFrame:GetPlayerSpells(showGeneralTab)
                 end
             end
         end
+        -- Split profession spells from General into their own subcategory
+        if allSpellsDict[GENERAL] then
+            local profSpells = {}
+            local generalSpells = {}
+            for _, spellInfo in ipairs(allSpellsDict[GENERAL]) do
+                if ModernSpellBookFrame:IsProfessionSpell(spellInfo) then
+                    spellInfo.category = "Professions"
+                    table.insert(profSpells, spellInfo)
+                else
+                    table.insert(generalSpells, spellInfo)
+                end
+            end
+            allSpellsDict[GENERAL] = generalSpells
+            if table.getn(profSpells) > 0 then
+                allSpellsDict["Professions"] = profSpells
+            end
+        end
+
         -- Merge unlearned spells from trainer data
         ModernSpellBookFrame:MergeUnlearnedSpells(allSpellsDict, true)
         -- Filter to highest ranks only if checkbox is unchecked
@@ -1352,6 +1370,28 @@ function ModernSpellBookFrame:MergeUnlearnedSpells(allSpellsDict, showGeneralTab
             end
         end
     end
+end
+
+-- Detect profession spells by rank string or known spell names
+local professionRanks = {
+    ["Apprentice"] = true, ["Journeyman"] = true, ["Expert"] = true,
+    ["Artisan"] = true, ["Master"] = true,
+}
+local professionSpells = {
+    ["Basic Campfire"] = true, ["Find Herbs"] = true, ["Find Minerals"] = true,
+    ["Find Fish"] = true, ["Find Trees"] = true, ["Smelting"] = true, ["Disenchant"] = true,
+    ["Pick Lock"] = true, ["Prospecting"] = true, ["Milling"] = true,
+    ["Survey"] = true, ["Cooking Fire"] = true,
+    ["Mining"] = true, ["Herbalism"] = true, ["Skinning"] = true,
+    ["Fishing"] = true, ["Cooking"] = true, ["First Aid"] = true,
+    ["Tailoring"] = true, ["Leatherworking"] = true, ["Blacksmithing"] = true,
+    ["Engineering"] = true, ["Enchanting"] = true, ["Alchemy"] = true,
+    ["Jewelcrafting"] = true, ["Inscription"] = true,
+}
+function ModernSpellBookFrame:IsProfessionSpell(spellInfo)
+    if professionSpells[spellInfo.spellName] then return true end
+    if spellInfo.spellRank and professionRanks[spellInfo.spellRank] then return true end
+    return false
 end
 
 -- Create Turtle WoW custom tabs if they exist and haven't been created yet
