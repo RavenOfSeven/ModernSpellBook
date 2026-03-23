@@ -17,6 +17,10 @@ local windowSettings = {
 	width2 = 1058,
 }
 
+local totalSpellItems = 0
+local totalCategoryItems = 0
+local leftButtons = {"ShowPassiveSpellsCheckBox", "ShowAllSpellRanksCheckbox", "ModernSpellBookFrameSearchBar"}
+
 class "CSpellBook"
 {
 	__init = function(self)
@@ -37,20 +41,20 @@ class "CSpellBook"
 
 		-- Event dispatch (vanilla calling convention)
 		local spellBook = self
-		f.ADDON_LOADED = function(frame, event, addon)
-			spellBook:OnAddonLoaded(addon)
+		f.Tabgroups = {}
+
+		f.ADDON_LOADED = function()
+			spellBook:OnAddonLoaded()
 		end
-		f.SPELLS_CHANGED = function(frame, event, ...)
+		f.SPELLS_CHANGED = function()
 			spellBook:OnSpellsChanged()
 		end
 
 		f:RegisterEvent("ADDON_LOADED")
 		f:RegisterEvent("SPELLS_CHANGED")
 		f:SetScript("OnEvent", function()
-			local eventName = event
-			if (ModernSpellBookFrame[eventName]) then
-				ModernSpellBookFrame[eventName](ModernSpellBookFrame, eventName, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
-			end
+			local handler = ModernSpellBookFrame[event]
+			if (handler) then handler() end
 		end)
 
 		-- OnShow
@@ -61,8 +65,8 @@ class "CSpellBook"
 
 	-- ========================= EVENTS ============================
 
-	OnAddonLoaded = function(self, addon)
-		if (addon ~= "ModernSpellBook") then return end
+	OnAddonLoaded = function(self)
+		if (arg1 ~= "ModernSpellBook") then return end
 
 		ModernSpellBook_DB = ModernSpellBook_DB or {showPassives = true, isMinimized = false, knownSpells = {}, addonVersion = currentAddonVersion}
 		if (ModernSpellBook_DB.showSpellCounter == nil) then
@@ -789,6 +793,114 @@ class "CSpellBook"
 		for i = 1, 20 do
 			local btn = _G["SpellButton" .. i]
 			if (btn) then btn:Hide() end
+		end
+	end;
+
+	-- ==================== POOL FACTORIES =========================
+
+	CleanPages = function(self)
+		for i = 1, totalSpellItems do
+			ModernSpellBookFrame["Spell".. i]:Hide()
+		end
+		for i = 1, totalCategoryItems do
+			ModernSpellBookFrame["Category".. i]:Hide()
+		end
+	end;
+
+	GetOrCreateCategory = function(self, i)
+		local item = ModernSpellBookFrame["Category".. i]
+		if (item ~= nil) then
+			return item
+		end
+		totalCategoryItems = totalCategoryItems + 1
+		item = CCategoryItem(ModernSpellBookFrame)
+		ModernSpellBookFrame["Category".. i] = item
+		return item
+	end;
+
+	GetOrCreateSpellItem = function(self, i)
+		local item = ModernSpellBookFrame["Spell".. i]
+		if (item ~= nil) then
+			return item
+		end
+		totalSpellItems = totalSpellItems + 1
+		item = CSpellItem(ModernSpellBookFrame, i)
+		ModernSpellBookFrame["Spell".. i] = item
+		return item
+	end;
+
+	-- =================== TAB MANAGEMENT ==========================
+
+	NewTab = function(self, name)
+		local tabNumber = table.getn(ModernSpellBookFrame.Tabgroups) + 1
+
+		local tab = CTab(ModernSpellBookFrame, name, tabNumber, function(clickedTab)
+			local wasPreviousSelectionDifferent = ModernSpellBookFrame.selectedTab ~= clickedTab.tab_number
+			if (not wasPreviousSelectionDifferent) then return end
+
+			PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+			ModernSpellBookFrame.selectedTab = clickedTab.tab_number
+			ModernSpellBook_DB.lastTab = clickedTab.tab_number
+
+			clickedTab:SetSelected()
+
+			for _, other_tab in ipairs(ModernSpellBookFrame.Tabgroups) do
+				if (other_tab ~= clickedTab) then
+					other_tab:SetDeselected()
+				end
+			end
+
+			ModernSpellBookFrame.currentPage = 1
+			ModernSpellBook_DB.lastPage = 1
+			ModernSpellBookFrame.previousPage:Disable()
+			SpellBook:DrawPage()
+		end)
+
+		table.insert(ModernSpellBookFrame.Tabgroups, tab)
+		return tab
+	end;
+
+	GetFinalVisibleTab = function(self)
+		local finalVisibleTab = 1
+		for i = 1, table.getn(ModernSpellBookFrame.Tabgroups) do
+			if (ModernSpellBookFrame.Tabgroups[i]:IsShown()) then
+				finalVisibleTab = i
+			end
+		end
+		return ModernSpellBookFrame.Tabgroups[finalVisibleTab]
+	end;
+
+	GetRightmostLeftButton = function(self)
+		local finalVisibleButton = _G[leftButtons[1]]
+
+		for _, item in ipairs(leftButtons) do
+			local button = _G[item]
+			if (button == nil or not button:IsShown()) then
+				return finalVisibleButton
+			end
+			finalVisibleButton = button
+		end
+
+		return ShowPassiveSpellsCheckBox
+	end;
+
+	PositionAllTabs = function(self)
+		if (ModernSpellBook_DB.isMinimized) then
+			for _, tab in ipairs(ModernSpellBookFrame.Tabgroups) do
+				tab:UpdatePosition(false, ModernSpellBookFrame.Tabgroups)
+			end
+
+			local lastTab = self:GetFinalVisibleTab()
+			local left = lastTab:GetRight()
+			local right = self:GetRightmostLeftButton():GetLeft()
+
+			for _, tab in ipairs(ModernSpellBookFrame.Tabgroups) do
+				tab:SetMinmaxPosition(left and right and left > right, ModernSpellBookFrame.Tabgroups)
+			end
+		else
+			for _, tab in ipairs(ModernSpellBookFrame.Tabgroups) do
+				tab:SetMinmaxPosition(false, ModernSpellBookFrame.Tabgroups)
+			end
 		end
 	end;
 }
