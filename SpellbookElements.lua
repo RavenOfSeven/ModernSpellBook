@@ -726,7 +726,7 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
             local isDark = ModernSpellBook_DB and ModernSpellBook_DB.textColorMode == "dark"
             if isDark then
                 spellFrame.text:SetTextColor(0, 0, 0)
-                spellFrame.subText:SetTextColor(0, 0, 0)
+                spellFrame.subText:SetTextColor(0.2, 0.2, 0.2)
                 spellFrame.text:SetShadowOffset(0, 0)
                 spellFrame.subText:SetShadowOffset(0, 0)
                 spellFrame.lightBorder:SetBlendMode("ADD")
