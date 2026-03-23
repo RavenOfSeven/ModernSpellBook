@@ -687,7 +687,10 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
                 spellFrame.text:SetTextColor(0.6, 0.55, 0.35)
                 spellFrame.subText:SetTextColor(0.6, 0.6, 0.6)
             end
-            if not isDark then
+            if isDark then
+                spellFrame.lightBorder:SetBlendMode("ADD")
+            else
+                spellFrame.lightBorder:SetBlendMode("BLEND")
                 spellFrame.text:SetShadowOffset(1, -1)
                 spellFrame.text:SetShadowColor(0, 0, 0, 0.7)
                 spellFrame.subText:SetShadowOffset(1, -1)
@@ -726,9 +729,11 @@ function ModernSpellBookFrame:GetOrCreateSpellFrame(i)
                 spellFrame.subText:SetTextColor(0, 0, 0)
                 spellFrame.text:SetShadowOffset(0, 0)
                 spellFrame.subText:SetShadowOffset(0, 0)
+                spellFrame.lightBorder:SetBlendMode("ADD")
             else
                 spellFrame.text:SetTextColor(0.989, 0.857, 0.343)
                 spellFrame.subText:SetTextColor(1, 1, 1)
+                spellFrame.lightBorder:SetBlendMode("BLEND")
                 spellFrame.text:SetShadowOffset(1, -1)
                 spellFrame.text:SetShadowColor(0, 0, 0, 0.7)
                 spellFrame.subText:SetShadowOffset(1, -1)
