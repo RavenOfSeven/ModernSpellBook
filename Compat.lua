@@ -1,6 +1,11 @@
 -- Compatibility layer for Turtle WoW (1.12.1 client, Interface 11200)
 -- Provides polyfills for APIs that exist in Classic SoD but not in vanilla.
 
+-- _G polyfill (doesn't exist in Lua 5.0)
+if not _G then
+    _G = getfenv(0)
+end
+
 MSB_COMPAT_LOADED = true
 
 -- Global string fallbacks (some don't exist in vanilla 1.12.1)

@@ -69,9 +69,12 @@ function ModernSpellBookFrame:CaptureTrainerData()
         local name, rank, category, expanded
         local ok, r1, r2, r3, r4 = pcall(GetTrainerServiceInfo, i)
         if ok then
-            name = r1
-            rank = r2 or ""
-            category = r3 or ""
+            name = r1 and string.gsub(r1, "^%s+", "") or nil
+            name = name and string.gsub(name, "%s+$", "") or nil
+            rank = r2 and string.gsub(r2, "^%s+", "") or ""
+            rank = string.gsub(rank, "%s+$", "")
+            category = r3 and string.gsub(r3, "^%s+", "") or ""
+            category = string.gsub(category, "%s+$", "")
         end
 
         if name and name ~= "" then
@@ -100,6 +103,9 @@ function ModernSpellBookFrame:CaptureTrainerData()
                 pcall(function()
                     if GetTrainerServiceDescription then
                         description = GetTrainerServiceDescription(i)
+                        if description then
+                            description = string.gsub(string.gsub(description, "^%s+", ""), "%s+$", "")
+                        end
                     end
                 end)
 
