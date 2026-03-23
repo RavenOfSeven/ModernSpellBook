@@ -39,6 +39,9 @@ ModernSpellBookFrame.ADDON_LOADED = function(self, event, addon)
 
     -- Our saved variables
     ModernSpellBook_DB = ModernSpellBook_DB or {showPassives = true, isMinimized = false, knownSpells = {}, addonVersion = currentAddonVersion}
+    if ModernSpellBook_DB.showSpellCounter == nil then
+        ModernSpellBook_DB.showSpellCounter = true
+    end
     if ModernSpellBook_DB.rememberPage == nil then
         ModernSpellBook_DB.rememberPage = true
     end
@@ -303,6 +306,12 @@ function ModernSpellBookFrame:SetupFrame()
     ModernSpellBookFrame.trainerHint:SetTextColor(0.6, 0.6, 0.6)
     ModernSpellBookFrame.trainerHint:Hide()
 
+    -- Spell counter
+    ModernSpellBookFrame.spellCounter = ModernSpellBookFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    ModernSpellBookFrame.spellCounter:SetPoint("BOTTOMLEFT", ModernSpellBookFrame, "BOTTOMLEFT", 30, 25)
+    ModernSpellBookFrame.spellCounter:SetFont("Fonts\\FRIZQT__.TTF", 10)
+    ModernSpellBookFrame.spellCounter:SetTextColor(1, 1, 1)
+
     -- UIPanelLayout attributes - try SetAttribute first, fall back to UIPanelWindows table
     if SpellBookFrame.SetAttribute then
         SpellBookFrame:SetAttribute("UIPanelLayout-defined", true)
@@ -486,6 +495,17 @@ function ModernSpellBookFrame:AddSettingsButton()
             info.keepShownOnClick = 1
             info.func = function()
                 ModernSpellBook_DB.rememberPage = not ModernSpellBook_DB.rememberPage
+            end
+            UIDropDownMenu_AddButton(info, level)
+
+            -- Spell counter
+            info = {}
+            info.text = "Spell counter"
+            info.checked = ModernSpellBook_DB.showSpellCounter
+            info.keepShownOnClick = 1
+            info.func = function()
+                ModernSpellBook_DB.showSpellCounter = not ModernSpellBook_DB.showSpellCounter
+                ModernSpellBookFrame:UpdateSpellCounter()
             end
             UIDropDownMenu_AddButton(info, level)
 
@@ -1059,6 +1079,7 @@ function ModernSpellBookFrame:DrawPage()
     end
 
     ModernSpellBookFrame:RefreshPage()
+    ModernSpellBookFrame:UpdateSpellCounter()
 end
 
 function ModernSpellBookFrame:RefreshPageElements()
@@ -1482,6 +1503,45 @@ local professionSpells = {
     ["Engineering"] = true, ["Enchanting"] = true, ["Alchemy"] = true,
     ["Jewelcrafting"] = true, ["Inscription"] = true,
 }
+function ModernSpellBookFrame:UpdateSpellCounter()
+    if not ModernSpellBookFrame.spellCounter then return end
+    if not ModernSpellBook_DB.showSpellCounter then
+        ModernSpellBookFrame.spellCounter:Hide()
+        return
+    end
+
+    -- Count learned spells (non-passive, non-pet, from class tabs)
+    local learned = 0
+    local numTabs = GetNumSpellTabs and GetNumSpellTabs() or 4
+    for i = 1, numTabs do
+        local tabName, texture, offset, numSpells = GetSpellTabInfo(i)
+        if not tabName then break end
+        learned = learned + (numSpells or 0)
+    end
+
+    -- Count unlearned from GetUnlearnedSpells (already filters out known spells)
+    local unlearned = 0
+    if ModernSpellBookFrame.GetUnlearnedSpells then
+        local unlearnedSpells = ModernSpellBookFrame:GetUnlearnedSpells()
+        if unlearnedSpells then
+            for _, spells in pairs(unlearnedSpells) do
+                unlearned = unlearned + table.getn(spells)
+            end
+        end
+    end
+
+    local _, englishClass = UnitClass("player")
+    local hasTrainerData = ModernSpellBook_DB.trainerSpells and ModernSpellBook_DB.trainerSpells[englishClass]
+    if hasTrainerData and unlearned > 0 then
+        ModernSpellBookFrame.spellCounter:SetText(learned .. "/" .. (learned + unlearned) .. " learned")
+    elseif hasTrainerData then
+        ModernSpellBookFrame.spellCounter:SetText(learned .. " learned")
+    else
+        ModernSpellBookFrame.spellCounter:SetText(learned .. "/? learned")
+    end
+    ModernSpellBookFrame.spellCounter:Show()
+end
+
 function ModernSpellBookFrame:IsProfessionSpell(spellInfo)
     if professionSpells[spellInfo.spellName] then return true end
     if spellInfo.spellRank and professionRanks[spellInfo.spellRank] then return true end
