@@ -374,15 +374,20 @@ class "CSpellDataService"
 		-- Merge talents with spells
 		local talentGridPositions = TalentService:GetAllTalents(true)
 		for talentGroupName, talents in pairs(talentGridPositions) do
+			-- Try to match talent tab name to an existing spell category (fuzzy match)
 			if (allSpellsDict[talentGroupName] == nil) then
-				for knownGroups, _ in pairs(allSpellsDict) do
-					if (string.find(string.lower(knownGroups), string.lower(string.sub(talentGroupName, 1, 4)))) then
-						talentGroupName = knownGroups
+				local matched = false
+				for knownGroup, _ in pairs(allSpellsDict) do
+					if (string.find(string.lower(knownGroup), string.lower(string.sub(talentGroupName, 1, 4)))) then
+						talentGroupName = knownGroup
 						for _, spellInfo in ipairs(talents) do
 							spellInfo.category = talentGroupName
 						end
+						matched = true
 						break
 					end
+				end
+				if (not matched) then
 					allSpellsDict[talentGroupName] = {}
 				end
 			end
