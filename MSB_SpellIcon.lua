@@ -207,17 +207,14 @@ class "CSpellBookIcon"
 		self:SetBorder("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
 		self:SetRoundBorder("Interface\\AddOns\\ModernSpellBook\\Assets\\bluemenu-ring")
 
-		-- Glow: new spell (yellow, highest layer)
-		self.glow_new_frame, self.glow_new = MSB_CreateGlow(parent, 60, nil, 15)
+		-- Glow: shared for new/available highlights (changes color)
+		self.glow_frame, self.glow_tex = MSB_CreateGlow(parent, 60, nil, 15)
 
-		-- Badge: "New"
+		-- Badge: "New" for learned spells
 		self.badge_new = MSB_CreateBadge(parent, "New", {1, 0.878, 0.078, 0.7}, {1, 0.9, 0.1, 0.8}, 12)
 		self.badge_new:SetPoint("BOTTOM", parent, "TOP", 0, 2)
 
-		-- Glow: available-to-learn (light blue)
-		self.glow_available_frame, self.glow_available = MSB_CreateGlow(parent, 60, {0.204, 0.765, 0.922}, 8)
-
-		-- Badge: "Train"
+		-- Badge: "Train" for available spells
 		self.badge_train = MSB_CreateBadge(parent, "Train", {0, 0.8, 0, 0.4}, {0.1, 0.8, 0.1, 0.8}, 7)
 		self.badge_train:SetPoint("BOTTOM", self.icon, "TOP", 0, 2)
 
@@ -293,63 +290,53 @@ class "CSpellBookIcon"
 
 	SetHighlights = function(self, spellInfo, isNew)
 		local hl = ModernSpellBook_DB.highlights
-		-- Learned spell glow/badge
+
+		-- Reset
+		self.glow_frame:Hide()
+		self.badge_new:Hide()
+		self.badge_train:Hide()
+
+		-- Learned spell glow/badge (yellow)
 		if (isNew and not spellInfo.isPassive) then
 			if (hl and hl.learnedGlow) then
-				self.glow_new_frame:ClearAllPoints()
-				self.glow_new_frame:SetPoint("CENTER", self.icon, "CENTER", 0.5, 0)
-				self.glow_new_frame:Show()
-			else
-				self.glow_new_frame:Hide()
+				self.glow_tex:SetVertexColor(1, 1, 1)
+				self.glow_frame:ClearAllPoints()
+				self.glow_frame:SetPoint("CENTER", self.icon, "CENTER", 0.5, 0)
+				self.glow_frame:Show()
 			end
 			if (hl and hl.learnedBadge) then
 				self.badge_new:Show()
-			else
-				self.badge_new:Hide()
 			end
-		else
-			self.glow_new_frame:Hide()
-			self.badge_new:Hide()
+			return
 		end
 
-		-- Available-to-learn glow/badge
+		-- Available-to-learn glow/badge (light blue)
 		if (spellInfo.isUnlearned and not spellInfo.isTalent and spellInfo.levelReq) then
 			local player_level = UnitLevel("player")
 			local avail_key = spellInfo.spellName .. (spellInfo.spellRank or "")
 			local already_seen = ModernSpellBook_DB.seenAvailable and ModernSpellBook_DB.seenAvailable[avail_key]
 			if (spellInfo.levelReq <= player_level and not already_seen and not spellInfo.talentBlocked) then
 				if (hl and hl.availableGlow) then
-					self.glow_available_frame:ClearAllPoints()
-					self.glow_available_frame:SetWidth(60)
-					self.glow_available_frame:SetHeight(60)
-					self.glow_available_frame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
-					self.glow_available_frame:Show()
-				else
-					self.glow_available_frame:Hide()
+					self.glow_tex:SetVertexColor(0.204, 0.765, 0.922)
+					self.glow_frame:ClearAllPoints()
+					self.glow_frame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
+					self.glow_frame:Show()
 				end
 				if (hl and hl.availableBadge) then
 					self.badge_train:Show()
-				else
-					self.badge_train:Hide()
 				end
-			else
-				self.glow_available_frame:Hide()
-				self.badge_train:Hide()
 			end
-		else
-			self.glow_available_frame:Hide()
-			self.badge_train:Hide()
 		end
 	end;
 
 	DismissNewHighlight = function(self)
-		self.glow_new_frame:Hide()
+		self.glow_frame:Hide()
 		self.badge_new:Hide()
 	end;
 
 	DismissAvailableHighlight = function(self, spellInfo)
-		if (self.glow_available_frame:IsShown()) then
-			self.glow_available_frame:Hide()
+		if (self.glow_frame:IsShown()) then
+			self.glow_frame:Hide()
 			self.badge_train:Hide()
 			if (not ModernSpellBook_DB.seenAvailable) then
 				ModernSpellBook_DB.seenAvailable = {}

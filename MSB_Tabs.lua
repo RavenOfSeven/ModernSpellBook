@@ -138,6 +138,7 @@ class "CTab"
 	SetSelected = function(self)
 		self.frame:SetNormalTexture("Interface\\Spellbook\\UI-SpellBook-Tab3-Selected")
 		self.frame:GetNormalTexture():SetVertexColor(unpack(enabledVertexColor))
+		self.frame:GetFontString():SetTextColor(unpack(normalFontColor))
 	end;
 
 	SetDeselected = function(self)

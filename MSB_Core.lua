@@ -151,10 +151,14 @@ class "CSpellBook"
 				SpellDataService:SetupInitiallyKnownSpells()
 			end
 
-			-- Restore last selected tab
-			local lastTab = ModernSpellBook_DB.rememberPage and ModernSpellBook_DB.lastTab or 1
-			if (lastTab > 1 and self.frame.Tabgroups[lastTab]) then
-				self.frame.Tabgroups[lastTab].frame:Click()
+			-- Restore last selected tab visuals
+			local lastTab = self.frame.selectedTab
+			for _, tab in ipairs(self.frame.Tabgroups) do
+				if (tab.tab_number == lastTab) then
+					tab:SetSelected()
+				else
+					tab:SetDeselected()
+				end
 			end
 		else
 			self.frame.tab3:UpdateAsPetTab()
