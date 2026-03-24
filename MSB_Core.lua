@@ -894,8 +894,10 @@ SpellBook = CSpellBook()
 
 -- ============================================================
 -- Replace vanilla SpellBookFrame behavior entirely.
--- We don't wrap the original — we replace it.
+-- Save original for toggle support.
 -- ============================================================
+
+MSB_OriginalSpellBookFrameOnShow = SpellBookFrame_OnShow
 
 SpellBookFrame_OnShow = function()
 	if (ModernSpellBookFrame.isForceLoading) then return end
