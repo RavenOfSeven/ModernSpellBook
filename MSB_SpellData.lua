@@ -440,6 +440,20 @@ class "CSpellDataService"
 		return allSpellsDict
 	end;
 
+	GetOtherTabSpells = function(self)
+		local spellsDict = {}
+		local customTabNames = {"Companions", "Mounts", "Toys"}
+
+		for _, tabName in ipairs(customTabNames) do
+			local tabSpells = self:GetCustomTabSpells(tabName)
+			if (tabSpells[tabName] and table.getn(tabSpells[tabName]) > 0) then
+				spellsDict[tabName] = tabSpells[tabName]
+			end
+		end
+
+		return spellsDict
+	end;
+
 	GetAvailableSpells = function(self)
 		if (ModernSpellBookFrame.selectedTab == 1) then
 			return self:GetPlayerSpells(false), false
@@ -447,11 +461,9 @@ class "CSpellDataService"
 			return self:GetPlayerSpells(true), false
 		elseif (ModernSpellBookFrame.selectedTab == 3) then
 			return self:GetPetSpells(), true
+		elseif (ModernSpellBookFrame.selectedTab == 4) then
+			return self:GetOtherTabSpells(), false
 		else
-			local tabInfo = ModernSpellBookFrame.customTabs and ModernSpellBookFrame.customTabs[ModernSpellBookFrame.selectedTab]
-			if (tabInfo) then
-				return self:GetCustomTabSpells(tabInfo.spellTabName), false
-			end
 			return {}, false
 		end
 	end;

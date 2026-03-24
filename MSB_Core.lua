@@ -734,34 +734,28 @@ class "CSpellBook"
 	-- =================== CUSTOM TABS =============================
 
 	CreateCustomTabs = function(self)
-		if (not self.frame.customTabs) then
-			self.frame.customTabs = {}
-		end
+		if (self.frame.otherTabCreated) then return end
 
-		local customTabDefs = {"Companions", "Mounts", "Toys"}
+		-- Check if any custom spell tabs exist (Companions, Mounts, Toys)
+		local customTabNames = {"Mounts", "Companions", "Toys"}
 		local numTabs = GetNumSpellTabs and GetNumSpellTabs() or 4
+		local hasAny = false
 
-		for _, customName in ipairs(customTabDefs) do
-			local alreadyExists = false
-			for _, info in pairs(self.frame.customTabs) do
-				if (info.spellTabName == customName) then
-					alreadyExists = true
+		for _, customName in ipairs(customTabNames) do
+			for i = 1, numTabs do
+				local tabName = GetSpellTabInfo(i)
+				if (tabName == customName) then
+					hasAny = true
 					break
 				end
 			end
+			if (hasAny) then break end
+		end
 
-			if (not alreadyExists) then
-				for i = 1, numTabs do
-					local tabName = GetSpellTabInfo(i)
-					if (tabName == customName) then
-						local tabIndex = table.getn(self.frame.Tabgroups) + 1
-						self:NewTab(customName)
-						self.frame.customTabs[tabIndex] = { spellTabName = customName }
-						self:PositionAllTabs()
-						break
-					end
-				end
-			end
+		if (hasAny) then
+			self:NewTab("Other")
+			self.frame.otherTabCreated = true
+			self:PositionAllTabs()
 		end
 	end;
 
