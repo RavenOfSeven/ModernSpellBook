@@ -1,72 +1,64 @@
 --[[
-	Spell icon visual area: icon texture, tile/socket, borders,
-	glows, badges, cooldown, stance indicator.
+	CIcon: Generic reusable icon component.
+	Contains: socket, icon texture, border, round border,
+	hover highlight, cooldown. No addon-specific logic.
 --]]
 
-local ICON_SIZE = 28
+local DEFAULT_ICON_SIZE = 28
 
-class "CSpellIcon"
+class "CIcon"
 {
-	__init = function(self, parent)
+	__init = function(self, parent, size)
 		self.parent = parent
-
-		-- New spell glow (highest layer)
-		self.glowNewFrame, self.glowNew = MSB_CreateGlow(parent, 60, nil, 15)
-
-		-- "New" badge for newly learned spells
-		self.badgeNew = MSB_CreateBadge(parent, "New", {1, 0.878, 0.078, 0.7}, {1, 0.9, 0.1, 0.8}, 12)
-		self.badgeNew:SetPoint("BOTTOM", parent, "TOP", 0, 2)
+		self.size = size or DEFAULT_ICON_SIZE
 
 		-- Socket background
-		self.tile = parent:CreateTexture(nil, "ARTWORK")
-		self.tile:SetWidth(ICON_SIZE + 22)
-		self.tile:SetHeight(ICON_SIZE + 22)
-		self.tile:SetPoint("CENTER", parent, "CENTER", 0, 0)
-		self.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
+		self.socket = parent:CreateTexture(nil, "ARTWORK")
+		self.socket:SetWidth(self.size + 22)
+		self.socket:SetHeight(self.size + 22)
+		self.socket:SetPoint("CENTER", parent, "CENTER", 0, 0)
 
-		-- Spell icon texture
+		-- Icon texture
 		self.icon = parent:CreateTexture(nil, "OVERLAY")
-		self.icon:SetWidth(ICON_SIZE)
-		self.icon:SetHeight(ICON_SIZE)
+		self.icon:SetWidth(self.size)
+		self.icon:SetHeight(self.size)
 		self.icon:SetPoint("CENTER", parent, "CENTER", 0, 0)
 		self.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
 
-		-- Decorative frame overlay
-		self.fancyFrame = CreateFrame("Frame", nil, parent)
-		self.fancyFrame:SetWidth(60)
-		self.fancyFrame:SetHeight(60)
-		self.fancyFrame:SetPoint("CENTER", parent, "CENTER", 0, 0)
-		self.fancyFrame:SetFrameLevel(parent:GetFrameLevel() + 3)
-		self.border = self.fancyFrame:CreateTexture(nil, "OVERLAY")
-		self.border:SetAllPoints(self.fancyFrame)
-		self.border:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
+		-- Border frame overlay
+		self.border_frame = CreateFrame("Frame", nil, parent)
+		self.border_frame:SetWidth(self.size + 32)
+		self.border_frame:SetHeight(self.size + 32)
+		self.border_frame:SetPoint("CENTER", parent, "CENTER", 0, 0)
+		self.border_frame:SetFrameLevel(parent:GetFrameLevel() + 3)
+		self.border = self.border_frame:CreateTexture(nil, "OVERLAY")
+		self.border:SetAllPoints(self.border_frame)
 
-		-- Passive spell round border (hidden by default)
-		self.roundBorderFrame = CreateFrame("Frame", nil, parent)
-		self.roundBorderFrame:SetWidth(56)
-		self.roundBorderFrame:SetHeight(56)
-		self.roundBorderFrame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
-		self.roundBorderFrame:SetFrameLevel(parent:GetFrameLevel() + 3)
-		self.roundBorder = self.roundBorderFrame:CreateTexture(nil, "OVERLAY")
-		self.roundBorder:SetAllPoints(self.roundBorderFrame)
-		self.roundBorder:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\bluemenu-ring")
-		self.roundBorderFrame:Hide()
+		-- Round border (alternative style, hidden by default)
+		self.round_border_frame = CreateFrame("Frame", nil, parent)
+		self.round_border_frame:SetWidth(self.size + 28)
+		self.round_border_frame:SetHeight(self.size + 28)
+		self.round_border_frame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
+		self.round_border_frame:SetFrameLevel(parent:GetFrameLevel() + 3)
+		self.round_border = self.round_border_frame:CreateTexture(nil, "OVERLAY")
+		self.round_border:SetAllPoints(self.round_border_frame)
+		self.round_border_frame:Hide()
 
 		-- Hover highlight
-		self.glowCheckedFrame, self.glowChecked = MSB_CreateGlow(parent, ICON_SIZE, nil, 4, "Interface\\Buttons\\CheckButtonHilight")
-		self.glowCheckedFrame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
-		self.glowCheckedFrame:Show()
-		self.glowChecked:SetAlpha(0)
-		self.glowChecked.checkedAlpha = 0.5
+		self.hover_frame, self.hover_glow = MSB_CreateGlow(parent, self.size, nil, 4, "Interface\\Buttons\\CheckButtonHilight")
+		self.hover_frame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
+		self.hover_frame:Show()
+		self.hover_glow:SetAlpha(0)
+		self.hover_alpha = 0.5
 
 		-- Cooldown
-		local cdType = COOLDOWN_FRAME_TYPE or "Model"
-		local cdOk, cdFrame = pcall(CreateFrame, cdType, nil, parent, "CooldownFrameTemplate")
-		if (not cdOk) then
-			cdOk, cdFrame = pcall(CreateFrame, "Cooldown", nil, parent, "CooldownFrameTemplate")
+		local cd_type = COOLDOWN_FRAME_TYPE or "Model"
+		local cd_ok, cd_frame = pcall(CreateFrame, cd_type, nil, parent, "CooldownFrameTemplate")
+		if (not cd_ok) then
+			cd_ok, cd_frame = pcall(CreateFrame, "Cooldown", nil, parent, "CooldownFrameTemplate")
 		end
-		if (cdOk and cdFrame) then
-			self.cooldown = cdFrame
+		if (cd_ok and cd_frame) then
+			self.cooldown = cd_frame
 			self.cooldown:SetPoint("TOPLEFT", self.icon, "TOPLEFT", 0, 0)
 			self.cooldown:SetPoint("BOTTOMRIGHT", self.icon, "BOTTOMRIGHT", 0, 0)
 			if (self.cooldown.SetDrawEdge) then
@@ -75,83 +67,225 @@ class "CSpellIcon"
 		else
 			self.cooldown = nil
 		end
+	end;
 
-		-- Stance active indicator
-		self.glowActiveFrame = CreateFrame("Frame", nil, parent)
-		self.glowActiveFrame:SetWidth(ICON_SIZE + 2)
-		self.glowActiveFrame:SetHeight(ICON_SIZE + 2)
-		self.glowActiveFrame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
-		self.glowActiveFrame:SetFrameLevel(parent:GetFrameLevel() + 5)
-		self.glowActive = self.glowActiveFrame:CreateTexture(nil, "OVERLAY")
-		self.glowActive:SetWidth(ICON_SIZE + 2)
-		self.glowActive:SetHeight(ICON_SIZE + 2)
-		self.glowActive:SetAllPoints(self.glowActiveFrame)
-		self.glowActive:SetTexture("Interface\\Buttons\\CheckButtonHilight")
-		self.glowActive:SetBlendMode("ADD")
-		self.glowActive:SetAlpha(0)
+	-- ========================= ICON ==============================
 
-		-- Available-to-learn glow (light blue)
-		self.glowAvailableFrame, self.glowAvailable = MSB_CreateGlow(parent, 60, {0.204, 0.765, 0.922}, 8)
+	SetIcon = function(self, texture)
+		self.icon:SetTexture(texture)
+	end;
 
-		-- "Train" badge for available-to-learn spells
-		self.badgeTrain = MSB_CreateBadge(parent, "Train", {0, 0.8, 0, 0.4}, {0.1, 0.8, 0.1, 0.8}, 7)
-		self.badgeTrain:SetPoint("BOTTOM", self.icon, "TOP", 0, 2)
+	SetIconCoords = function(self, l, r, t, b)
+		self.icon:SetTexCoord(l, r, t, b)
+	end;
 
-		self.isPassive = false
+	SetPortrait = function(self, texture)
+		if (SetPortraitToTexture) then
+			SetPortraitToTexture(self.icon, texture)
+		else
+			self.icon:SetTexture(texture)
+			self.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
+		end
+	end;
+
+	SetIconAlpha = function(self, alpha)
+		self.icon:SetAlpha(alpha)
+	end;
+
+	SetIconColor = function(self, r, g, b)
+		self.icon:SetVertexColor(r, g, b)
+	end;
+
+	-- ======================== SOCKET =============================
+
+	SetSocket = function(self, texture)
+		self.socket:SetTexture(texture)
+	end;
+
+	SetSocketAlpha = function(self, alpha)
+		self.socket:SetAlpha(alpha)
+	end;
+
+	ShowSocket = function(self)
+		self.socket:Show()
+	end;
+
+	HideSocket = function(self)
+		self.socket:Hide()
+	end;
+
+	-- ======================== BORDER =============================
+
+	SetBorder = function(self, texture)
+		self.border:SetTexture(texture)
+	end;
+
+	SetBorderAlpha = function(self, alpha)
+		self.border:SetAlpha(alpha)
+	end;
+
+	ShowBorder = function(self)
+		self.border_frame:Show()
+	end;
+
+	HideBorder = function(self)
+		self.border_frame:Hide()
+	end;
+
+	-- ==================== ROUND BORDER ===========================
+
+	SetRoundBorder = function(self, texture)
+		self.round_border:SetTexture(texture)
+	end;
+
+	ShowRoundBorder = function(self)
+		self.round_border_frame:Show()
+	end;
+
+	HideRoundBorder = function(self)
+		self.round_border_frame:Hide()
+	end;
+
+	-- ======================= HOVER ===============================
+
+	SetHoverAlpha = function(self, alpha)
+		self.hover_alpha = alpha
+	end;
+
+	ShowHover = function(self)
+		self.hover_glow:SetAlpha(self.hover_alpha)
+	end;
+
+	HideHover = function(self)
+		self.hover_glow:SetAlpha(0)
+	end;
+
+	-- ====================== COOLDOWN =============================
+
+	SetCooldown = function(self, start, duration, enable)
+		if (self.cooldown) then
+			local cd_func = CooldownFrame_SetTimer or CooldownFrame_Set
+			if (cd_func) then cd_func(self.cooldown, start, duration, enable) end
+		end
+	end;
+
+	HideCooldown = function(self)
+		if (self.cooldown) then self.cooldown:Hide() end
+	end;
+
+	-- ======================= STATE ===============================
+
+	SetDesaturated = function(self, desaturated)
+		if (self.icon.SetDesaturated) then
+			self.icon:SetDesaturated(desaturated)
+		elseif (desaturated) then
+			self.icon:SetVertexColor(0.4, 0.4, 0.4)
+		else
+			self.icon:SetVertexColor(1, 1, 1)
+		end
+	end;
+}
+
+--==============================================================================
+--====================== Class "CSpellBookIcon" ================================
+--==============================================================================
+
+--[[
+	Extends CIcon with spellbook-specific components and logic:
+	glows (new, available, active), badges (new, train),
+	and methods that use spellInfo / ModernSpellBook_DB.
+--]]
+
+class "CSpellBookIcon"
+:extends("CIcon")
+{
+	__init = function(self, parent)
+		CIcon.__init(self, parent, DEFAULT_ICON_SIZE)
+
+		-- Spellbook socket & border textures
+		self:SetSocket("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
+		self:SetBorder("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
+		self:SetRoundBorder("Interface\\AddOns\\ModernSpellBook\\Assets\\bluemenu-ring")
+
+		-- Glow: new spell (yellow, highest layer)
+		self.glow_new_frame, self.glow_new = MSB_CreateGlow(parent, 60, nil, 15)
+
+		-- Badge: "New"
+		self.badge_new = MSB_CreateBadge(parent, "New", {1, 0.878, 0.078, 0.7}, {1, 0.9, 0.1, 0.8}, 12)
+		self.badge_new:SetPoint("BOTTOM", parent, "TOP", 0, 2)
+
+		-- Glow: available-to-learn (light blue)
+		self.glow_available_frame, self.glow_available = MSB_CreateGlow(parent, 60, {0.204, 0.765, 0.922}, 8)
+
+		-- Badge: "Train"
+		self.badge_train = MSB_CreateBadge(parent, "Train", {0, 0.8, 0, 0.4}, {0.1, 0.8, 0.1, 0.8}, 7)
+		self.badge_train:SetPoint("BOTTOM", self.icon, "TOP", 0, 2)
+
+		-- Glow: stance active indicator
+		self.glow_active_frame = CreateFrame("Frame", nil, parent)
+		self.glow_active_frame:SetWidth(self.size + 2)
+		self.glow_active_frame:SetHeight(self.size + 2)
+		self.glow_active_frame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
+		self.glow_active_frame:SetFrameLevel(parent:GetFrameLevel() + 5)
+		self.glow_active = self.glow_active_frame:CreateTexture(nil, "OVERLAY")
+		self.glow_active:SetWidth(self.size + 2)
+		self.glow_active:SetHeight(self.size + 2)
+		self.glow_active:SetAllPoints(self.glow_active_frame)
+		self.glow_active:SetTexture("Interface\\Buttons\\CheckButtonHilight")
+		self.glow_active:SetBlendMode("ADD")
+		self.glow_active:SetAlpha(0)
+
+		self.is_passive = false
 	end;
 
 	-- ========================= STYLE =============================
 
 	SetStyle = function(self, spellInfo)
 		if (spellInfo.isPassive) then
-			if (SetPortraitToTexture) then
-				SetPortraitToTexture(self.icon, spellInfo.spellIcon)
-			else
-				self.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
-			end
-			self.icon:SetVertexColor(1, 1, 1)
-			self.tile:SetTexture("")
-			self.tile:SetAlpha(0)
-			self.fancyFrame:Hide()
-			self.roundBorderFrame:Show()
-			self.glowChecked.checkedAlpha = 0
+			self:SetPortrait(spellInfo.spellIcon)
+			self:SetIconColor(1, 1, 1)
+			self.socket:SetTexture("")
+			self:SetSocketAlpha(0)
+			self:HideBorder()
+			self:ShowRoundBorder()
+			self.hover_alpha = 0
 		else
-			self.icon:SetTexture(spellInfo.spellIcon)
-			self.icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
-			self.icon:SetVertexColor(1, 1, 1)
-			self.tile:SetAlpha(1)
-			self.tile:SetWidth(ICON_SIZE + 22)
-			self.tile:SetHeight(ICON_SIZE + 22)
-			self.tile:SetPoint("TOPLEFT", self.parent, "TOPLEFT", -3, 3)
-			self.tile:SetTexture("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
-			self.tile:SetVertexColor(1, 1, 1, 1)
-			self.roundBorderFrame:Hide()
-			self.border:SetTexture("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
+			self:SetIcon(spellInfo.spellIcon)
+			self:SetIconCoords(0.04, 0.96, 0.04, 0.96)
+			self:SetIconColor(1, 1, 1)
+			self:SetSocketAlpha(1)
+			self.socket:SetWidth(self.size + 22)
+			self.socket:SetHeight(self.size + 22)
+			self.socket:SetPoint("TOPLEFT", self.parent, "TOPLEFT", -3, 3)
+			self:SetSocket("Interface\\Spellbook\\UI-Spellbook-SpellBackground")
+			self.socket:SetVertexColor(1, 1, 1, 1)
+			self:HideRoundBorder()
+			self:SetBorder("Interface\\AddOns\\ModernSpellBook\\Assets\\spellbook-frame")
 			self.border:SetDrawLayer("OVERLAY", 1)
 			self.border:SetVertexColor(1, 1, 1)
-			self.glowChecked.checkedAlpha = 0.5
+			self.hover_alpha = 0.5
 		end
-		self.isPassive = spellInfo.isPassive
+		self.is_passive = spellInfo.isPassive
 	end;
 
 	SetFancyFrame = function(self, spellInfo)
-		local showFrame = true
+		local show = true
 		if (ModernSpellBook_DB and ModernSpellBook_DB.iconFrame) then
-			local isOtherTab = ModernSpellBookFrame.selectedTab and ModernSpellBookFrame.selectedTab > 2
+			local is_other_tab = ModernSpellBookFrame.selectedTab and ModernSpellBookFrame.selectedTab > 2
 			if (spellInfo.isUnlearned) then
-				showFrame = ModernSpellBook_DB.iconFrame.unlearned
+				show = ModernSpellBook_DB.iconFrame.unlearned
 			elseif (spellInfo.isPassive) then
-				showFrame = false
-			elseif (isOtherTab) then
-				showFrame = ModernSpellBook_DB.iconFrame.other
+				show = false
+			elseif (is_other_tab) then
+				show = ModernSpellBook_DB.iconFrame.other
 			else
-				showFrame = ModernSpellBook_DB.iconFrame.spells
+				show = ModernSpellBook_DB.iconFrame.spells
 			end
 		end
-		if (showFrame) then
-			self.fancyFrame:Show()
+		if (show) then
+			self:ShowBorder()
 		else
-			self.fancyFrame:Hide()
+			self:HideBorder()
 		end
 	end;
 
@@ -162,66 +296,66 @@ class "CSpellIcon"
 		-- Learned spell glow/badge
 		if (isNew and not spellInfo.isPassive) then
 			if (hl and hl.learnedGlow) then
-				self.glowNewFrame:ClearAllPoints()
-				self.glowNewFrame:SetPoint("CENTER", self.icon, "CENTER", 0.5, 0)
-				self.glowNewFrame:Show()
+				self.glow_new_frame:ClearAllPoints()
+				self.glow_new_frame:SetPoint("CENTER", self.icon, "CENTER", 0.5, 0)
+				self.glow_new_frame:Show()
 			else
-				self.glowNewFrame:Hide()
+				self.glow_new_frame:Hide()
 			end
 			if (hl and hl.learnedBadge) then
-				self.badgeNew:Show()
+				self.badge_new:Show()
 			else
-				self.badgeNew:Hide()
+				self.badge_new:Hide()
 			end
 		else
-			self.glowNewFrame:Hide()
-			self.badgeNew:Hide()
+			self.glow_new_frame:Hide()
+			self.badge_new:Hide()
 		end
 
 		-- Available-to-learn glow/badge
 		if (spellInfo.isUnlearned and not spellInfo.isTalent and spellInfo.levelReq) then
-			local playerLevel = UnitLevel("player")
-			local availKey = spellInfo.spellName .. (spellInfo.spellRank or "")
-			local alreadySeen = ModernSpellBook_DB.seenAvailable and ModernSpellBook_DB.seenAvailable[availKey]
-			if (spellInfo.levelReq <= playerLevel and not alreadySeen and not spellInfo.talentBlocked) then
+			local player_level = UnitLevel("player")
+			local avail_key = spellInfo.spellName .. (spellInfo.spellRank or "")
+			local already_seen = ModernSpellBook_DB.seenAvailable and ModernSpellBook_DB.seenAvailable[avail_key]
+			if (spellInfo.levelReq <= player_level and not already_seen and not spellInfo.talentBlocked) then
 				if (hl and hl.availableGlow) then
-					self.glowAvailableFrame:ClearAllPoints()
-					self.glowAvailableFrame:SetWidth(60)
-					self.glowAvailableFrame:SetHeight(60)
-					self.glowAvailableFrame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
-					self.glowAvailableFrame:Show()
+					self.glow_available_frame:ClearAllPoints()
+					self.glow_available_frame:SetWidth(60)
+					self.glow_available_frame:SetHeight(60)
+					self.glow_available_frame:SetPoint("CENTER", self.icon, "CENTER", 0, 0)
+					self.glow_available_frame:Show()
 				else
-					self.glowAvailableFrame:Hide()
+					self.glow_available_frame:Hide()
 				end
 				if (hl and hl.availableBadge) then
-					self.badgeTrain:Show()
+					self.badge_train:Show()
 				else
-					self.badgeTrain:Hide()
+					self.badge_train:Hide()
 				end
 			else
-				self.glowAvailableFrame:Hide()
-				self.badgeTrain:Hide()
+				self.glow_available_frame:Hide()
+				self.badge_train:Hide()
 			end
 		else
-			self.glowAvailableFrame:Hide()
-			self.badgeTrain:Hide()
+			self.glow_available_frame:Hide()
+			self.badge_train:Hide()
 		end
 	end;
 
 	DismissNewHighlight = function(self)
-		self.glowNewFrame:Hide()
-		self.badgeNew:Hide()
+		self.glow_new_frame:Hide()
+		self.badge_new:Hide()
 	end;
 
 	DismissAvailableHighlight = function(self, spellInfo)
-		if (self.glowAvailableFrame:IsShown()) then
-			self.glowAvailableFrame:Hide()
-			self.badgeTrain:Hide()
+		if (self.glow_available_frame:IsShown()) then
+			self.glow_available_frame:Hide()
+			self.badge_train:Hide()
 			if (not ModernSpellBook_DB.seenAvailable) then
 				ModernSpellBook_DB.seenAvailable = {}
 			end
-			local availKey = spellInfo.spellName .. (spellInfo.spellRank or "")
-			ModernSpellBook_DB.seenAvailable[availKey] = true
+			local avail_key = spellInfo.spellName .. (spellInfo.spellRank or "")
+			ModernSpellBook_DB.seenAvailable[avail_key] = true
 		end
 	end;
 
@@ -229,39 +363,33 @@ class "CSpellIcon"
 
 	SetLearnedState = function(self, spellInfo)
 		if (spellInfo.isUnlearned) then
-			if (self.icon.SetDesaturated) then
-				self.icon:SetDesaturated(true)
-			else
-				self.icon:SetVertexColor(0.4, 0.4, 0.4)
-			end
-			self.icon:SetAlpha(0.5)
-			local showUnlearnedFrame = ModernSpellBook_DB and ModernSpellBook_DB.iconFrame and ModernSpellBook_DB.iconFrame.unlearned
-			if (not showUnlearnedFrame) then
-				self.fancyFrame:Hide()
+			self:SetDesaturated(true)
+			self:SetIconAlpha(0.5)
+			local show_unlearned = ModernSpellBook_DB and ModernSpellBook_DB.iconFrame and ModernSpellBook_DB.iconFrame.unlearned
+			if (not show_unlearned) then
+				self:HideBorder()
 			else
 				if (self.border and self.border.SetDesaturated) then
 					self.border:SetDesaturated(true)
 				end
-				self.border:SetAlpha(0.5)
+				self:SetBorderAlpha(0.5)
 			end
-			self.tile:SetAlpha(0.5)
-			self.glowChecked.checkedAlpha = 0
+			self:SetSocketAlpha(0.5)
+			self.hover_alpha = 0
 		else
-			if (self.icon.SetDesaturated) then
-				self.icon:SetDesaturated(false)
-			end
+			self:SetDesaturated(false)
 			if (self.border and self.border.SetDesaturated) then
 				self.border:SetDesaturated(false)
 			end
-			if (self.border) then self.border:SetAlpha(1) end
-			self.icon:SetAlpha(1)
-			self.tile:SetAlpha(1)
+			self:SetBorderAlpha(1)
+			self:SetIconAlpha(1)
+			self:SetSocketAlpha(1)
 		end
 	end;
 
 	-- ======================== STANCE =============================
 
-	SetStance = function(self, isActive)
-		self.glowActive:SetAlpha(isActive and 1 or 0)
+	SetStance = function(self, is_active)
+		self.glow_active:SetAlpha(is_active and 1 or 0)
 	end;
 }

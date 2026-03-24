@@ -11,7 +11,7 @@ local spellUpdateRequired = true
 local currentAddonVersion = "1.4"
 
 local windowSettings = {
-	posy = 155,
+	posy = 0,
 	height = 560,
 	width1 = 550,
 	width2 = 1058,
@@ -247,10 +247,20 @@ class "CSpellBook"
 		end)
 		ModernSpellBookFrame:SetScript("OnDragStop", function()
 			this:StopMovingOrSizing()
+			-- Save position
+			local point, _, relPoint, x, y = this:GetPoint()
+			ModernSpellBook_DB.position = { point = point, relPoint = relPoint, x = x, y = y }
 		end)
 		ModernSpellBookFrame:SetWidth(windowSettings.width2)
 		ModernSpellBookFrame:SetHeight(windowSettings.height)
-		ModernSpellBookFrame:SetPoint("CENTER", UIParent, "CENTER", 0, windowSettings.posy)
+
+		-- Restore saved position or default to center
+		if (ModernSpellBook_DB.position) then
+			local pos = ModernSpellBook_DB.position
+			ModernSpellBookFrame:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
+		else
+			ModernSpellBookFrame:SetPoint("CENTER", UIParent, "CENTER", 0, windowSettings.posy)
+		end
 		ModernSpellBookFrame:SetFrameStrata("HIGH")
 		HideUIPanel(ModernSpellBookFrame)
 
@@ -519,7 +529,12 @@ class "CSpellBook"
 				SpellBookFrame:SetAttribute("UIPanelLayout-width", ModernSpellBookFrame:GetWidth())
 			end
 
-			ModernSpellBookFrame:SetPoint("LEFT", UIParent, "LEFT", 15, windowSettings.posy)
+			if (ModernSpellBook_DB.position) then
+				local pos = ModernSpellBook_DB.position
+				ModernSpellBookFrame:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
+			else
+				ModernSpellBookFrame:SetPoint("LEFT", UIParent, "LEFT", 15, windowSettings.posy)
+			end
 			ModernSpellBookFrame.backgroundRight:Hide()
 			ModernSpellBookFrame.searchBar:Clear()
 			ModernSpellBookFrame.searchBar:Hide()
@@ -533,7 +548,12 @@ class "CSpellBook"
 			end
 
 			ModernSpellBookFrame:ClearAllPoints()
-			ModernSpellBookFrame:SetPoint("CENTER", UIParent, "CENTER", 0, windowSettings.posy)
+			if (ModernSpellBook_DB.position) then
+				local pos = ModernSpellBook_DB.position
+				ModernSpellBookFrame:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
+			else
+				ModernSpellBookFrame:SetPoint("CENTER", UIParent, "CENTER", 0, windowSettings.posy)
+			end
 
 			ModernSpellBookFrame.backgroundRight:Show()
 

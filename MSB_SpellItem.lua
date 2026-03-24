@@ -21,13 +21,13 @@ class "CSpellItem"
 		self.frame:RegisterForDrag("LeftButton")
 
 		-- Spell icon (all icon-area visuals)
-		self.spellIcon = CSpellIcon(self.frame)
+		self.spellIcon = CSpellBookIcon(self.frame)
 
 		-- OnLeave: hide tooltip and hover glow
-		local glowChecked = self.spellIcon.glowChecked
+		local spellIcon = self.spellIcon
 		self.frame:SetScript("OnLeave", function()
 			GameTooltip:Hide()
-			glowChecked:SetAlpha(0)
+			spellIcon:HideHover()
 		end)
 
 		-- Text container (positioned to the right of the icon)
@@ -181,7 +181,7 @@ class "CSpellItem"
 		local spellIcon = self.spellIcon
 		local frame = self.frame
 		frame:SetScript("OnEnter", function()
-			spellIcon.glowChecked:SetAlpha(spellIcon.glowChecked.checkedAlpha)
+			spellIcon:ShowHover()
 
 			-- Dismiss available-to-learn highlight on hover
 			spellIcon:DismissAvailableHighlight(spellInfo)

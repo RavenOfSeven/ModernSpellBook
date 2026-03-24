@@ -120,6 +120,18 @@ class "CSettingsMenu"
 			info.value = "iconFrame"
 			UIDropDownMenu_AddButton(info, level)
 
+			-- Reset position
+			info = {}
+			info.text = "Reset position"
+			info.notCheckable = 1
+			info.func = function()
+				ModernSpellBook_DB.position = nil
+				ModernSpellBookFrame:ClearAllPoints()
+				ModernSpellBookFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+				CloseDropDownMenus()
+			end
+			UIDropDownMenu_AddButton(info, level)
+
 		elseif (level == 2) then
 			if (UIDROPDOWNMENU_MENU_VALUE == "textColor") then
 				info = {}
