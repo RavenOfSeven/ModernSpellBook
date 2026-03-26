@@ -88,6 +88,7 @@ class "CSpellItem"
 	SetClickHandler = function(self, spellInfo)
 		local iconTex = self.spellIcon.icon
 		self.frame:SetScript("OnClick", function()
+			if (IsShiftKeyDown()) then return end
 			if (spellInfo.isUnlearned) then return end
 			if (spellInfo.isPassive) then return end
 			if (spellInfo.isPetSpell) then
@@ -151,29 +152,21 @@ class "CSpellItem"
 
 	SetChatLinkHandler = function(self, spellInfo)
 		self.frame:SetScript("OnMouseDown", function()
-			local button = arg1
-			local isChatLink = IsModifiedClick and IsModifiedClick("CHATLINK") or IsShiftKeyDown()
-			if (isChatLink) then
-				if (MacroFrameText and MacroFrameText.HasFocus and MacroFrameText:HasFocus()) then
-					if (spellInfo.isPassive) then return end
-					if (spellInfo.spellRank == "") then
-						ChatEdit_InsertLink(spellInfo.spellName)
-					elseif (spellInfo.spellRank ~= "") then
-						ChatEdit_InsertLink(spellInfo.spellName.. "(".. spellInfo.spellRank.. ")")
-					end
-				elseif (spellInfo.isTalent) then
-					local chatlink = GetTalentLink(spellInfo.talentGrid[1], spellInfo.talentGrid[2])
-					if (chatlink) then
-						ChatEdit_InsertLink(chatlink)
-					else
-						ChatEdit_InsertLink(spellInfo.spellName)
-					end
-				else
-					local spellLink = "|cff71d5ff|Hspell:".. spellInfo.spellID .. "|h[".. spellInfo.spellName .."]|h|r"
-					ChatEdit_InsertLink(spellLink)
-				end
+			if (not IsShiftKeyDown()) then return end
+			if (not ChatFrameEditBox or not ChatFrameEditBox:IsVisible()) then return end
+
+			if (spellInfo.isPassive) then return end
+
+			local text
+			if (spellInfo.spellRank and spellInfo.spellRank ~= "") then
+				text = "|cff71d5ff[" .. spellInfo.spellName .. "(" .. spellInfo.spellRank .. ")]|r"
+			else
+				text = "|cff71d5ff[" .. spellInfo.spellName .. "]|r"
 			end
-			return;
+
+			if (text) then
+				ChatFrameEditBox:Insert(text)
+			end
 		end)
 	end;
 

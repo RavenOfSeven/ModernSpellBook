@@ -99,6 +99,17 @@ class "CSettingsMenu"
 			end
 			UIDropDownMenu_AddButton(info, level)
 
+			-- Continuation headers
+			info = {}
+			info.text = "Continuation headers"
+			info.checked = ModernSpellBook_DB.showContinuationHeaders
+			info.keepShownOnClick = 1
+			info.func = function()
+				ModernSpellBook_DB.showContinuationHeaders = not ModernSpellBook_DB.showContinuationHeaders
+				onChanged()
+			end
+			UIDropDownMenu_AddButton(info, level)
+
 			-- Highlights submenu
 			info = {}
 			info.text = "Highlights"

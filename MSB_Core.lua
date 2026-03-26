@@ -84,6 +84,7 @@ class "CSpellBook"
 		if (ModernSpellBook_DB.rememberPage == nil) then ModernSpellBook_DB.rememberPage = true end
 		if (ModernSpellBook_DB.showUnlearned == nil) then ModernSpellBook_DB.showUnlearned = true end
 		if (ModernSpellBook_DB.showUpcoming == nil) then ModernSpellBook_DB.showUpcoming = true end
+		if (ModernSpellBook_DB.showContinuationHeaders == nil) then ModernSpellBook_DB.showContinuationHeaders = true end
 		if (not ModernSpellBook_DB.fontSize) then ModernSpellBook_DB.fontSize = 11.5 end
 		if (not ModernSpellBook_DB.highlights) then
 			ModernSpellBook_DB.highlights = { learnedGlow = true, learnedBadge = true, availableGlow = true, availableBadge = true }
@@ -672,6 +673,11 @@ class "CSpellBook"
 								if (drawingPageNumber == 1) then
 									table.insert(pageCollection, spellPage)
 									spellPage = {}
+									if (ModernSpellBook_DB.showContinuationHeaders) then
+										currentPageRows = 0
+										totalCategories = totalCategories +1
+										table.insert(spellPage, {isCategory = true, category = category, currentPageRows = currentPageRows, drawingPageNumber = drawingPageNumber})
+									end
 								end
 							end
 						end
